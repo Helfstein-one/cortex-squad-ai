@@ -1,6 +1,6 @@
 # Cortex Squad AI Consolidated Multi-Persona Skill Suite
 
-A single, self-contained, copy-pasteable (`Ctrl+A` -> `Ctrl+C`) specification consolidating the complete `skills/` system of **cortex-squad-ai** (`_shared/` cognitive & handoff contracts, all 6 CoALA personas, L3 references, checklists, templates, and deterministic Python scripts).
+A single, self-contained, copy-pasteable (`Ctrl+A` -> `Ctrl+C`) specification consolidating the complete `skills/` system of **[cortex-squad-ai](README.md)** (`_shared/` cognitive & handoff contracts, all 6 CoALA personas, L3 references, checklists, templates, and deterministic Python scripts), together with its cognitive architecture, theoretical inspirations, runtime topology, and component evolution history.
 
 ---
 
@@ -17,7 +17,20 @@ A single, self-contained, copy-pasteable (`Ctrl+A` -> `Ctrl+C`) specification co
 
 - [Quick-Start Copy-Paste Guide](#quick-start-copy-paste-guide)
 - [Table of Contents](#table-of-contents)
+- [Origins, Inspiration & Problem-Solution Matrix](#origins-inspiration--problem-solution-matrix)
+  - [Traditional Agents vs. Cortex Squad](#traditional-agents-vs-cortex-squad)
+  - [Theoretical & Industry Inspirations by Layer and Skill](#theoretical--industry-inspirations-by-layer-and-skill)
+- [Cognitive Layer & Hexagonal Runtime Architecture](#cognitive-layer--hexagonal-runtime-architecture)
+  - [4-Tier CoALA Memory & Phase 0–5 Deliberation Loop](#4-tier-coala-memory--phase-05-deliberation-loop)
+  - [Hexagonal Runtime, Model Routing & LangGraph Orchestration](#hexagonal-runtime-model-routing--langgraph-orchestration)
+  - [Runtime Implementation vs. Scaffold Stubs](#runtime-implementation-vs-scaffold-stubs)
+- [History & Evolution of Every Component](#history--evolution-of-every-component)
+  - [Release Timeline (v1.0.0 to Consolidated Guide)](#release-timeline-v100-to-consolidated-guide)
+  - [Per-Component Evolution Matrix](#per-component-evolution-matrix)
 - [System Topology and RACI Matrix](#system-topology-and-raci-matrix)
+  - [4-Phase CoALA + Quorum Lifecycle](#4-phase-coala--quorum-lifecycle)
+  - [Why 6 Runtime Personas Are Preserved (and Optional Extension Pattern)](#why-6-runtime-personas-are-preserved-and-optional-extension-pattern)
+  - [RACI & Veto Matrix](#raci--veto-matrix)
 - [Shared Protocols](#shared-protocols)
   - [Shared Cognitive Loop (`skills/_shared/cognitive-loop.md`)](#shared-cognitive-loop)
   - [Shared Handoff Contract (`skills/_shared/handoff-contract.md`)](#shared-handoff-contract)
@@ -48,6 +61,152 @@ A single, self-contained, copy-pasteable (`Ctrl+A` -> `Ctrl+C`) specification co
     - [Data Steward SKILL (`skills/data-steward/SKILL.md`)](#data-steward-skill)
     - [Data Steward LGPD Governance Checklist (`skills/data-steward/checklists/lgpd-governance.md`)](#data-steward-lgpd-governance-checklist)
 - [Completeness Manifest](#completeness-manifest)
+
+## Origins, Inspiration & Problem-Solution Matrix
+
+**cortex-squad-ai** replaces monolithic, single-prompt LLM interactions with an autonomous, cross-functional engineering squad grounded in the **CoALA (Cognitive Architectures for Language Agents)** framework, **LangGraph** cyclic state orchestration, and **Hexagonal Architecture (Ports & Adapters)**.
+
+### Traditional Agents vs. Cortex Squad
+
+| Typical Failure Mode | Conventional Agent Approach | Cortex Squad Solution |
+| :--- | :--- | :--- |
+| **Code Hallucination** | The LLM claims it tested code or cites unverified files/APIs. | **Empirical Podman Harness + Grounding**: No approval without deterministic checks (`ruff`, `mypy --strict`, `pytest`, static scripts) in an isolated rootless Podman container, plus `[VERIFIED]` / `[ASSUMPTION]` tagging. |
+| **Error Looping** | The agent repeats the exact same failing fix across retries. | **Episodic Memory (`SqliteEpisodicStore`)**: Failure signatures, root causes, and remediation hints are persisted and injected into subsequent cycles, explicitly banning repeat root causes. |
+| **Context Rot / Attention Degradation** | Giant monolithic prompts inject every rule up front, degrading `1.5B–7B` models. | **3-Level Progressive Disclosure (`agentskills.io`)**: L1 YAML metadata (~100 tokens) -> L2 active `SKILL.md` instructions -> L3 `references/`, `checklists/`, and `scripts/` loaded strictly on trigger. |
+| **Governance & Cost Leaks** | Code compiles, but exposes PII, secrets, Cartesian joins, or runaway DPU/token spend. | **Critical Quorum with Scoped Veto**: `chaos-qa-critic` and `data-steward` hold Absolute Veto; `finops-tuner` holds Conditional Veto (`CRITICAL`/`HIGH` quantified regressions only). |
+
+### Theoretical & Industry Inspirations by Layer and Skill
+
+| Component / Skill | Core Inspirations & Standards | How It Shapes `cortex-squad-ai` |
+|---|---|---|
+| **Cognitive Architecture (`_shared/cognitive-loop.md`)** | **CoALA** (Sumers et al.), **Anthropic *"Building Effective Agents"*** (Evaluator-Optimizer) | Separates memory into Working, Procedural, Semantic, and Episodic tiers; enforces Phase 0 Ambiguity Gate, multi-option evaluation, and empirical verification. |
+| **Skill Packaging (`skills/*/SKILL.md`)** | **`agentskills.io` / Linux Foundation AAIF** | Standardized L1/L2/L3 Progressive Disclosure, `Use when / Do NOT use when` triggers, `allowed-tools`, `license: Apache-2.0`, and `<=132`-char lead summaries fitting `MarkdownSkillLoader`'s `body[:150]` slice. |
+| **Core Architecture (`_shared/solid-hexagonal-rules.md`)** | **Hexagonal Architecture** (Alistair Cockburn), **SOLID / ISP** | Pure `domain/` with zero framework imports, `typing.Protocol` ports in `application/`, and ISP separation between `ReadOnlyWorkspacePort`, `WorkspaceMutationPort`, and `SandboxExecutorPort`. |
+| **Orchestration (`langgraph_engine.py`, `handoff-contract.md`)** | **LangGraph Cyclic `StateGraph`**, **Spotify Cross-Functional Squads & RACI** | Models `Conception -> Construction -> Parallel Critic Fan-Out -> Empirical Harness -> Episodic Retry / HITL` with immutable snapshot isolation and `QuorumPolicy` arbitration. |
+| **Model Tiering (`litellm_adapter.py`)** | **Local-First Small-Model Economics (Ollama `1.5B–7B`)** | Routes high-synthesis roles to `7b`, governance/FinOps critics to `3b`, and chaos/reasoning probes to `1.5b`, driving strict `<=2k` L2/L3 prompt budgets and deterministic scripts. |
+| **`principal-architect`** | **Michael Nygard ADRs**, **Spec-First Ambiguity Gating**, **Threat Modeling & SLOs** | Enforces Phase 0 `blocking_ambiguities`, >=2 evaluated alternatives, typed `Protocol`/DDL/API contracts, trust boundaries, and `Assumptions to Attack` for downstream critics. |
+| **`staff-data-engineer`** | **Lakehouse / Apache Iceberg ACID**, **dbt Model Contracts**, **Static Catalyst Analysis** | Pure `DataFrame -> DataFrame` transforms decoupled from `SparkSession`, `MERGE INTO` idempotency, `config.contract.enforced: true`, and stdlib `explain_plan_check.py`. |
+| **`staff-software-engineer`** | **Clean/Hexagonal Python**, **Pydantic v2**, **OWASP & Async Resilience** | Frozen dataclasses/models, `mypy --strict`, `extra="forbid"` boundary validation, explicit `asyncio.wait_for`/timeouts, `Semaphore`/`TaskGroup`, and `Protocol`-fake tests. |
+| **`chaos-qa-critic`** | **Netflix Chaos Engineering (Simian Army)**, **Mutation & Property Testing** | Attacks `assumptions_to_attack` on an immutable snapshot and runs deterministic `mutation_probe.py` anomaly modes (`nulls`, `skew`, `out-of-order`, `schema-drift`, `duplicates`). |
+| **`finops-tuner`** | **FinOps Foundation Unit Economics**, **Spark Shuffle / S3 / LLM Token Budgets** | Quantifies Glue DPU, S3 small-file amplification (`<16 MB`), Spark spill, N+1 calls, and `1.5B–7B` context inflation (`>8k` tokens) via a 4-tier `CRITICAL`–`LOW` Conditional Veto matrix. |
+| **`data-steward`** | **LGPD (Lei 13.709/2018)**, **GDPR Privacy-by-Design**, **Zero-Trust Secrets & IAM** | Enforces PII minimization, `HMAC-SHA256` keyed hashing/tokenization, zero plaintext secrets in code/logs, IAM least privilege, TTL/erasure (`DELETE`/crypto-shredding), and lineage. |
+
+## Cognitive Layer & Hexagonal Runtime Architecture
+
+### 4-Tier CoALA Memory & Phase 0–5 Deliberation Loop
+
+Every persona operates over 4 explicit CoALA memory tiers modeled in `src/cortex_squad/domain/models/cognitive.py`:
+
+1. **Working Memory (`WorkingMemory`)**: Ephemeral per-mission state holding `mission_id`, `goal`, `current_adr`, `code_diffs`, `active_assumptions`, the 5 most recent `harness_logs`, and `iteration_count`.
+2. **Procedural Memory (`skills/` via `MarkdownSkillLoader`)**:
+   - **L1 (Metadata)**: `MarkdownSkillLoader.discover_skills()` globs `skills/*/SKILL.md`, parses YAML frontmatter (`name`, `persona`, `role_type`, `triggers`, `required_ports`, `veto_power`, `max_deliberation_options`, ignoring extra `agentskills.io` keys), and slices `body[:150]` as `SkillMetadata.description`.
+   - **L2 (Instructions)**: `ExecuteCoALAStepUseCase` loads `SkillLevel.L2_INSTRUCTIONS` (`SKILL.md` body) on demand for the active persona, paired with the `COALA DELIBERATION PROTOCOL` and the strict 6-key `DeliberationResult` JSON contract.
+   - **L3 (Resources & Scripts)**: `load_skill(..., SkillLevel.L3_RESOURCES)` loads top-level `references/*.md`, `checklists/*.md`, and `scripts/*.py` (skipping `templates/` and `_shared/`, which is why `principal-architect/references/adr-template.md` mirrors `templates/adr-template.md` 1:1).
+3. **Semantic Memory (`SemanticFact`)**: Persisted catalog of `schema`, `contract`, `adr`, and `business_rule` facts queried via `SqliteEpisodicStore.search_semantic_facts()`.
+4. **Episodic Memory (`EpisodicEntry`)**: Indexed failure history (`failure_signature`, `root_cause`, `remediation_hint`, `persona_culprit`, `timestamp`) stored in SQLite (`episodic_entries`) and retrieved across missions ordered by `timestamp DESC` so past failures steer new cycles.
+
+```mermaid
+flowchart TD
+    subgraph CoALA["CoALA 4-Tier Memory Architecture"]
+        WM["1. Working Memory\nGoal, active ADR, code diffs, last 5 harness logs"]
+        PM["2. Procedural Memory\nModular skills/ with L1/L2/L3 Progressive Disclosure"]
+        SM["3. Semantic Memory\nCatalog of contracts, Iceberg DDLs, schemas, ADRs"]
+        EM["4. Episodic Memory\nSQLite history of failure signatures & root causes"]
+    end
+
+    WM --> CLP["CoALA Deliberation Loop"]
+    PM --> CLP
+    SM --> CLP
+    EM --> CLP
+
+    subgraph CLP["Internal Persona Deliberation (Phase 0 -> 5)"]
+        P0["0. Scope & Ambiguity Gate\nVerify goal, SLAs, PII & blocking_ambiguities"] --> P1["1. Retrieval & Episodic Check\nRead files first; ban repeat root causes"]
+        P1 --> P2["2. Proposal\nGenerate 2..max_deliberation_options distinct approaches"]
+        P2 --> P3["3. Evaluation\nScore Idempotency, Perf/Cost, Modularity, Security"]
+        P3 --> P4["4. Selection\nPick winner + document rejection rationale"]
+        P4 --> P5["5. Grounded Execution\nEmit diffs/verdicts + [VERIFIED]/[ASSUMPTION] + assumptions_to_attack"]
+    end
+```
+
+### Hexagonal Runtime, Model Routing & LangGraph Orchestration
+
+`src/cortex_squad/` isolates domain rules from external frameworks using Ports & Adapters (`typing.Protocol` interfaces in `application/ports/`):
+
+```
+                          ┌──────────────────────────────────────┐
+                          │         ADAPTERS (INBOUND)           │
+                          │   CLI (Typer/Rich) • FastMCP Server  │
+                          └──────────────────┬───────────────────┘
+                                             │
+                                             ▼
+                          ┌──────────────────────────────────────┐
+                          │          APPLICATION LAYER           │
+                          │   Use Cases: RunMission, CoALAStep   │
+                          │   Ports: LLMPort, MemoryPort, ...    │
+                          └──────────┬───────────────────────────┘
+                                     │ (Zero Framework Imports)
+                                     ▼
+                          ┌──────────────────────────────────────┐
+                          │             DOMAIN CORE              │
+                          │   Entities: PersonaSpec, Memories    │
+                          │   Services: QuorumPolicy, Router     │
+                          └──────────┬───────────────────────────┘
+                                     │
+                                     ▼
+                          ┌──────────────────────────────────────┐
+                          │         ADAPTERS (OUTBOUND)          │
+                          │ LangGraph • LiteLLM • SQLite • Podman│
+                          └──────────────────────────────────────┘
+```
+
+The squad workflow executes as a cyclic `LangGraph` `StateGraph` (`langgraph_engine.py`) paired with an empirical container harness (`PodmanHarnessRunner`):
+
+```mermaid
+flowchart TD
+    A["1. CONCEPTION\nPrincipal Architect"] -->|ADR & Contracts| B["2. CONSTRUCTION\nStaff Data / Software Engineer"]
+    B -->|Code & Tests| C1["Chaos & QA Critic\n(Absolute Veto)"]
+    B -->|Execution Plan| C2["FinOps Tuner\n(Conditional Veto)"]
+    B -->|Lineage & Schemas| C3["Data Steward\n(Absolute Veto)"]
+    C1 -->|Vote| D["4. EMPIRICAL HARNESS\nPodman: ruff + mypy --strict + pytest"]
+    C2 -->|Vote| D
+    C3 -->|Vote| D
+    D -->|Harness Fail or Veto| E[("Record EpisodicEntry\n(SQLite)")]
+    E -->|Root-Cause Feedback Loop| B
+    D -->|100% Quorum Approved & Green Harness| F["5. HUMAN-IN-THE-LOOP\nApproval / Escalation"]
+```
+
+- **Local-First Model Tiering (`LiteLLMAdapter`)**: Routes `principal-architect`, `staff-data-engineer`, and `staff-software-engineer` to `ollama/qwen2.5-coder:7b`; `chaos-qa-critic` to `ollama/deepseek-r1:1.5b`; and `finops-tuner` / `data-steward` to `ollama/qwen2.5-coder:3b`, with deterministic 6-key JSON fallback when a local runtime is unavailable.
+- **Empirical Sandbox (`PodmanHarnessRunner`)**: Runs `ruff check .`, `mypy --strict src`, and `pytest -v tests/unit` inside rootless Podman (`cortex-squad-harness:latest` built from `Containerfile`), falling back to local subprocess execution if `podman` is unavailable or returns exit code `125`.
+- **Entrypoints**: CLI (`cortex-squad skills`, `cortex-squad run --mission "..." --max-cycles 3`) via Typer/Rich, and FastMCP (`python -m cortex_squad.adapters.inbound.mcp.server`) exposing `run_mission` and `list_squad_skills`.
+
+### Runtime Implementation vs. Scaffold Stubs
+
+To keep documentation strictly accurate against `src/cortex_squad/`:
+- **Live Implemented Components**: `MarkdownSkillLoader` (L1/L2/L3 parsing), `SkillRouter` (trigger matching), `QuorumPolicy` (Absolute vs. Conditional veto evaluation), `ExecuteCoALAStepUseCase` (L2 prompt assembly + `DeliberationResult` JSON parsing), `SqliteEpisodicStore` (episodic & semantic persistence), `LiteLLMAdapter` (Ollama model routing + fallback), and `PodmanHarnessRunner` (rootless Podman / subprocess verification).
+- **Deterministic Scaffold Stubs**: In the current runtime codebase, `RunSquadMissionUseCase._collect_quorum_votes` returns simulated `APPROVE` votes for the 3 critics, `RunSquadMissionUseCase.execute` instantiates `staff-data-engineer` as the default Phase 2 builder, and `LangGraphSquadEngine` persona nodes (`_node_conception`, `_node_construction`, `_node_chaos_critic`, `_node_finops_tuner`, `_node_data_steward`) return deterministic scaffolded outputs while `_node_empirical_harness` executes `SandboxExecutorPort.execute_harness()`.
+
+## History & Evolution of Every Component
+
+### Release Timeline (v1.0.0 to Consolidated Guide)
+
+1. **`v1.0.0` Baseline (Pre-`5bd3f4a`)**: Initial Hexagonal runtime (`src/cortex_squad/`), CoALA domain models, CLI/FastMCP adapters, and an **18-file / 192-line Portuguese (`PT-BR`) `skills/` prototype**. Persona `SKILL.md` files were 12–19 lines each, `_shared/` totaled 23 lines across 3 files, `mutation_probe.py` was a 19-line no-op stub, `explain_plan_check.py` checked only 2 literal strings, and `templates/adr-template.md` was invisible to `MarkdownSkillLoader`'s L3 loader.
+2. **`v2.0.0` Skill Suite & Consolidation (`5bd3f4a`, `2026-11-23`)**: Standardized all `skills/` prose to crisp imperative English (preventing mixed-language prompt drift on `1.5B–7B` Ollama models), aligned all 6 personas with `agentskills.io` + `body[:150]` lead summaries (0 trigger collisions across 54 unique triggers), added 3 L3 files (**18 -> 21 files, 192 -> 1,480 lines**), absorbed AppSec/SRE/Spec-Clarifier into the 6 immutable runtime personas, upgraded `explain_plan_check.py` (426L) and `mutation_probe.py` (272L) into real deterministic stdlib tools, and consolidated all 21 files verbatim into `CORTEX_SQUAD_SKILLS.md`.
+3. **`v2.0.0` Enriched Consolidated Guide (Current)**: Expanded the top-level guide of `CORTEX_SQUAD_SKILLS.md` and synchronized `README.md` with the complete cognitive layer, theoretical inspirations, runtime vs. stub clarity, and per-component evolution history while preserving 100% verbatim parity for all 21 embedded `skills/` files.
+
+### Per-Component Evolution Matrix
+
+| Component | `v1.0.0` Baseline | `v2.0.0` (`5bd3f4a`+) | Key Upgrade Rationale |
+|---|---|---|---|
+| `skills/_shared/cognitive-loop.md` | 9L PT-BR stub | **42L** EN protocol | Added Phase 0 Ambiguity Gate, Episodic Root-Cause Check, `[VERIFIED]`/`[ASSUMPTION]` grounding, and `1.5B–7B` token budget discipline. |
+| `skills/_shared/handoff-contract.md` | 8L PT-BR stub | **93L** EN contract | Aligned 1:1 with `DeliberationResult` & `QuorumVote` JSON, added RACI/Veto Matrix, Snapshot Isolation, HITL Escalation Packet, and IDE Port Mapping. |
+| `skills/_shared/solid-hexagonal-rules.md` | 6L PT-BR stub | **31L** EN invariants | Codified Domain purity, `Protocol` DI, pure DataFrame transforms, `MERGE INTO` idempotency, parameterized SQL, and structured PII-free logging. |
+| `principal-architect/` | `SKILL.md` (19L), `adr-review.md` (6L), `templates/adr-template.md` (14L) | `SKILL.md` (**68L**), `adr-review.md` (**13L**), `references/` & `templates/adr-template.md` (**34L** each) | Added `references/adr-template.md` mirror to close `MarkdownSkillLoader`'s `templates/` blind spot; absorbed Phase 0 spec clarification, threat modeling, and cross-critic arbitration. |
+| `staff-data-engineer/` | `SKILL.md` (19L), `dbt-contracts.md` (5L), `pyspark-iceberg.md` (5L), `explain_plan_check.py` (19L, 2 literals) | `SKILL.md` (**72L**), `dbt-contracts.md` (**22L**), `pyspark-iceberg.md` (**22L**), `explain_plan_check.py` (**426L**) | Built real stdlib Catalyst/SQL plan analyzer (`CartesianProduct`, `BroadcastNestedLoopJoin`, `PartitionFilters: []`, Python UDFs, unpartitioned `Window`/`OVER()`, `CollectLimit`); added enforced dbt contracts & Iceberg lifecycle rules. |
+| `staff-software-engineer/` | `SKILL.md` (12L), `python-clean-arch.md` (5L) | `SKILL.md` (**69L**), `python-clean-arch.md` (**25L**), `checklists/production-readiness.md` (**12L**, new) | Added async timeout/concurrency rules, Pydantic v2 `extra="forbid"`, OWASP input hygiene, `Protocol`-fake testing, and an 8-gate production readiness checklist. |
+| `chaos-qa-critic/` | `SKILL.md` (12L), `mutation_probe.py` (19L empty no-op stub) | `SKILL.md` (**66L**), `checklists/adversarial-testing.md` (**12L**, new), `mutation_probe.py` (**272L**) | Replaced empty stub with deterministic 6-mode anomaly injector (`nulls`, `skew`, `out-of-order`, `schema-drift`, `duplicates`, `all`) + 8-point adversarial checklist. |
+| `finops-tuner/` | `SKILL.md` (12L), `aws-glue-emr-cost.md` (5L) | `SKILL.md` (**67L**), `aws-glue-emr-cost.md` (**23L**) | Added quantified 4-tier Conditional Veto matrix (`CRITICAL`/`HIGH` veto vs. `MEDIUM`/`LOW` advisory), S3 small-file amplification math, Glue Auto Scaling, and `1.5B–7B` LLM token budgets. |
+| `data-steward/` | `SKILL.md` (12L), `lgpd-governance.md` (5L) | `SKILL.md` (**67L**), `lgpd-governance.md` (**10L**) | Expanded LGPD/GDPR rules to 6 mandatory gates: PII minimization, `HMAC-SHA256`/vault tokenization, secrets hygiene, IAM least privilege, TTL/erasure, and end-to-end lineage. |
+| `CORTEX_SQUAD_SKILLS.md` | Did not exist | **Created in `5bd3f4a` (1,817L) -> Enriched Guide** | Lossless `Ctrl+A -> Ctrl+C` bundle with 100% verbatim parity across all 21 `skills/` files, Completeness Manifest, plus full cognitive, architectural, and historical guide. |
 
 ## System Topology and RACI Matrix
 
