@@ -20,6 +20,8 @@ A single, self-contained, copy-pasteable (`Ctrl+A` -> `Ctrl+C`) specification co
 - [Origins, Inspiration & Problem-Solution Matrix](#origins-inspiration--problem-solution-matrix)
   - [Traditional Agents vs. Cortex Squad](#traditional-agents-vs-cortex-squad)
   - [Theoretical & Industry Inspirations by Layer and Skill](#theoretical--industry-inspirations-by-layer-and-skill)
+- [Runtime Update: 8 Personas (PM and SM added)](#runtime-update-8-personas-pm-and-sm-added)
+- [Addendum: product-manager and scrum-master (v1.0.0)](#addendum-product-manager-and-scrum-master-v100)
 - [Cognitive Layer & Hexagonal Runtime Architecture](#cognitive-layer--hexagonal-runtime-architecture)
   - [4-Tier CoALA Memory & Phase 0–5 Deliberation Loop](#4-tier-coala-memory--phase-05-deliberation-loop)
   - [Hexagonal Runtime, Model Routing & LangGraph Orchestration](#hexagonal-runtime-model-routing--langgraph-orchestration)
@@ -236,6 +238,31 @@ To keep documentation strictly accurate against `src/cortex_squad/`:
 | **3. Quorum: Cost & Compute** | I | I | I | I | **A / R** (Conditional Veto) | I |
 | **3. Quorum: LGPD, PII, Secrets & Lineage** | I | I | I | I | I | **A / R** (Absolute Veto) |
 | **4. Empirical Harness & Escalation** | **C / Arbitrator** | R | R | R | R | R |
+
+### Runtime Update: 8 Personas (PM and SM added)
+
+| Phase / Artifact | `product-manager` | `scrum-master` |
+|---|---|---|
+| **0. Spec (before architect)** | **A / R** (acceptance criteria, non-goals, scope) | I |
+| **1. Conception** | C (scope questions) | I |
+| **2. Construction** | I | I |
+| **3. Quorum** | I | I |
+| **Between cycles on failure** | I | **R** (blameless retro -> `EpisodicEntry.remediation_hint`, HITL escalation) |
+
+Neither has veto. `QuorumPolicy` still counts only `chaos-qa-critic`, `data-steward` (absolute) and `finops-tuner` (conditional).
+
+### Galeria das Personas
+
+<p align="center">
+  <img src="docs/assets/personas/principal-architect.svg" width="23%" alt="PRINCIPAL ARCHITECT">
+  <img src="docs/assets/personas/staff-data-engineer.svg" width="23%" alt="STAFF DATA ENGINEER">
+  <img src="docs/assets/personas/staff-software-engineer.svg" width="23%" alt="STAFF SOFTWARE ENGINEER">
+  <img src="docs/assets/personas/chaos-qa-critic.svg" width="23%" alt="CHAOS QA CRITIC">
+  <img src="docs/assets/personas/finops-tuner.svg" width="23%" alt="FINOPS TUNER">
+  <img src="docs/assets/personas/data-steward.svg" width="23%" alt="DATA STEWARD">
+  <img src="docs/assets/personas/product-manager.svg" width="23%" alt="PRODUCT MANAGER">
+  <img src="docs/assets/personas/scrum-master.svg" width="23%" alt="SCRUM MASTER">
+</p>
 
 ## Shared Protocols
 

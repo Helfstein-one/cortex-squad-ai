@@ -23,7 +23,7 @@
 - [1. Visão Geral & Proposta de Valor](#1-visão-geral--proposta-de-valor)
 - [2. Arquitetura Hexagonal & SOLID](#2-arquitetura-hexagonal--solid)
 - [3. Arquitetura Cognitiva CoALA](#3-arquitetura-cognitiva-coala)
-- [4. As 6 Personas, Matriz RACI & Poderes de Veto](#4-as-6-personas-matriz-raci--poderes-de-veto)
+- [4. As 8 Personas, Matriz RACI & Poderes de Veto](#4-as-8-personas-matriz-raci--poderes-de-veto)
 - [5. Máquina de Estados & Orquestração (LangGraph)](#5-máquina-de-estados--orquestração-langgraph)
 - [6. Test Harness Empírico & Pirâmide de Testes](#6-test-harness-empírico--pirâmide-de-testes)
 - [7. Suite Consolidada CORTEX_SQUAD_SKILLS.md (Portabilidade Ctrl+C)](#7-suite-consolidada-cortex_squad_skillsmd-portabilidade-ctrlc)
@@ -145,7 +145,7 @@ flowchart TD
 
 ---
 
-## 4. As 6 Personas, Matriz RACI & Poderes de Veto
+## 4. As 8 Personas, Matriz RACI & Poderes de Veto
 
 | Persona (`PersonaRole`) | Papel (`role_type`) | Modelo Ollama (`LiteLLMAdapter`) | Poder de Veto | Escopo (`Owns`) & Recursos L3 |
 | :--- | :--- | :--- | :--- | :--- |
@@ -155,6 +155,21 @@ flowchart TD
 | **Chaos & QA Critic** (`chaos-qa-critic`) | `critic` | `deepseek-r1:1.5b` | **Veto Absoluto** (`QuorumPolicy`) | Ataque a `assumptions_to_attack`, testes adversariais e probes determinísticos de mutação. L3: `adversarial-testing.md`, `scripts/mutation_probe.py` (272L). |
 | **FinOps & Perf Tuner** (`finops-tuner`) | `critic` | `qwen2.5-coder:3b` | **Veto Condicional** (`CRITICAL`/`HIGH` apenas) | Shuffle/DPU Glue/EMR, small-files S3 (`<16 MB`), `O(n²)`/N+1, orçamento de tokens (`>8k`). `MEDIUM` -> `conditional_approve`; `LOW` -> `approve`. L3: `aws-glue-emr-cost.md`. |
 | **Data Steward** (`data-steward`) | `auditor` | `qwen2.5-coder:3b` | **Veto Absoluto** (`QuorumPolicy`) | LGPD/GDPR, minimização & `HMAC-SHA256`/tokenização de PII, higiene de segredos, IAM least privilege, retenção/erasure e linhagem. L3: `lgpd-governance.md`. |
+| **Product Manager** (`product-manager`) | `conceptualizer` | `qwen2.5-coder:7b` | **NÃO** (`veto_power: false`) | Fase 0: problema, critérios de aceite Given/When/Then, non-goals, prioridade e `blocking_ambiguities`. Sem decisões de arquitetura. |
+| **Scrum Master** (`scrum-master`) | `facilitator` | `qwen2.5-coder:7b` | **NÃO** (`veto_power: false`) | Entre ciclos: detecta loops/bloqueios, orçamento de ciclos, retro sem culpados gravada como `EpisodicEntry` e pacote de escalonamento HITL. |
+
+### Galeria das Personas
+
+<p align="center">
+  <img src="docs/assets/personas/principal-architect.svg" width="23%" alt="PRINCIPAL ARCHITECT">
+  <img src="docs/assets/personas/staff-data-engineer.svg" width="23%" alt="STAFF DATA ENGINEER">
+  <img src="docs/assets/personas/staff-software-engineer.svg" width="23%" alt="STAFF SOFTWARE ENGINEER">
+  <img src="docs/assets/personas/chaos-qa-critic.svg" width="23%" alt="CHAOS QA CRITIC">
+  <img src="docs/assets/personas/finops-tuner.svg" width="23%" alt="FINOPS TUNER">
+  <img src="docs/assets/personas/data-steward.svg" width="23%" alt="DATA STEWARD">
+  <img src="docs/assets/personas/product-manager.svg" width="23%" alt="PRODUCT MANAGER">
+  <img src="docs/assets/personas/scrum-master.svg" width="23%" alt="SCRUM MASTER">
+</p>
 
 ### Matriz RACI por Fase & Preservação das 6 Personas de Runtime
 
@@ -169,7 +184,9 @@ flowchart TD
 | **3. Quórum: LGPD, PII, Segredos & Linhagem** | I | I | I | I | I | **A / R** (Veto Absoluto) |
 | **4. Empirical Harness & Escalonamento** | **C / Arbitrator** | R | R | R | R | R |
 
-> **Por que 6 personas no runtime?** `PersonaRole`, `QuorumPolicy`, `RunSquadMissionUseCase`, `LangGraphSquadEngine` e `LiteLLMAdapter` acoplam exatamente esses 6 slugs. Em vez de criar diretórios órfãos, capacidades de **AppSec**, **SRE/Observabilidade** e **Spec Clarification** foram absorvidas nos limites `Owns / Does NOT Own` das 6 personas (totalizando 54 triggers únicos sem colisões).
+> **Atualização:** `product-manager` (Fase 0, antes do arquiteto) e `scrum-master` (retro após ciclo falho) agora fazem parte do fluxo em `RunSquadMissionUseCase` (`PersonaRole.PRODUCT_MANAGER`, `PersonaRole.SCRUM_MASTER`). Nenhum tem veto; a `QuorumPolicy` continua com os 3 críticos.
+>
+> **Por que 6 personas na junta/quórum?** `PersonaRole`, `QuorumPolicy`, `RunSquadMissionUseCase`, `LangGraphSquadEngine` e `LiteLLMAdapter` acoplam exatamente esses 6 slugs. Em vez de criar diretórios órfãos, capacidades de **AppSec**, **SRE/Observabilidade** e **Spec Clarification** foram absorvidas nos limites `Owns / Does NOT Own` das 6 personas (totalizando 54 triggers únicos sem colisões).
 
 ---
 

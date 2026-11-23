@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400" role="img" aria-label="STAFF SOFTWARE ENGINEER">
+  <defs><radialGradient id="bg" cx="50%" cy="40%" r="75%"><stop offset="0" stop-color="#111827"/><stop offset="1" stop-color="#030712"/></radialGradient>
+  <filter id="g" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+  <rect width="400" height="400" rx="24" fill="url(#bg)"/>
+  <g transform="translate(200,150)">
+    <polygon points="0,-110 95,-55 95,55 0,110 -95,55 -95,-55" fill="#0F172A" stroke="#818CF8" stroke-width="3" filter="url(#g)"/>
+    <polygon points="0,-90 78,-45 78,45 0,90 -78,45 -78,-45" fill="none" stroke="#818CF8" stroke-width="1" stroke-dasharray="6 5" opacity=".6"/>
+    <g transform="scale(1.5)"><path d="M-12 -22 L-28 0 L-12 22 M12 -22 L28 0 L12 22 M4 -26 L-4 26" fill="none" stroke="#818CF8" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" filter="url(#g)"/></g>
+  </g>
+  <text x="200" y="330" fill="#F8FAFC" font-family="-apple-system,Segoe UI,Roboto,sans-serif" font-size="22" font-weight="800" text-anchor="middle" letter-spacing="2">STAFF SOFTWARE ENGINEER</text>
+  <text x="200" y="358" fill="#818CF8" font-family="-apple-system,Segoe UI,Roboto,sans-serif" font-size="13" text-anchor="middle">Clean Arch · Types · Async</text>
+</svg>

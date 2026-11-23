@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400" role="img" aria-label="PRODUCT MANAGER">
+  <defs><radialGradient id="bg" cx="50%" cy="40%" r="75%"><stop offset="0" stop-color="#111827"/><stop offset="1" stop-color="#030712"/></radialGradient>
+  <filter id="g" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="6" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
+  <rect width="400" height="400" rx="24" fill="url(#bg)"/>
+  <g transform="translate(200,150)">
+    <polygon points="0,-110 95,-55 95,55 0,110 -95,55 -95,-55" fill="#0F172A" stroke="#A855F7" stroke-width="3" filter="url(#g)"/>
+    <polygon points="0,-90 78,-45 78,45 0,90 -78,45 -78,-45" fill="none" stroke="#A855F7" stroke-width="1" stroke-dasharray="6 5" opacity=".6"/>
+    <g transform="scale(1.5)"><path d="M-26 -26 H26 V26 H-26 Z M-14 -12 H14 M-14 0 H14 M-14 12 H4" fill="none" stroke="#A855F7" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" filter="url(#g)"/></g>
+  </g>
+  <text x="200" y="330" fill="#F8FAFC" font-family="-apple-system,Segoe UI,Roboto,sans-serif" font-size="22" font-weight="800" text-anchor="middle" letter-spacing="2">PRODUCT MANAGER</text>
+  <text x="200" y="358" fill="#A855F7" font-family="-apple-system,Segoe UI,Roboto,sans-serif" font-size="13" text-anchor="middle">Spec · Acceptance · Scope</text>
+</svg>
