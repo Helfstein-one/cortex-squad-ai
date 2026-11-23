@@ -1,0 +1,155 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 500" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradients -->
+    <radialGradient id="bgGrad" cx="50%" cy="50%" r="75%">
+      <stop offset="0%" stop-color="#111827" />
+      <stop offset="60%" stop-color="#0B0F19" />
+      <stop offset="100%" stop-color="#030712" />
+    </radialGradient>
+
+    <!-- Glowing Effects -->
+    <filter id="glowCyan" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+    <filter id="glowPurple" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <!-- Linear Conduits Gradients -->
+    <linearGradient id="cyanPurple" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00F0FF" />
+      <stop offset="100%" stop-color="#A855F7" />
+    </linearGradient>
+    <linearGradient id="emeraldCyan" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#10B981" />
+      <stop offset="100%" stop-color="#00F0FF" />
+    </linearGradient>
+    <linearGradient id="amberPurple" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#F59E0B" />
+      <stop offset="100%" stop-color="#A855F7" />
+    </linearGradient>
+
+    <!-- Hexagon Pattern & Shapes -->
+    <pattern id="hexGrid" width="40" height="69.282" patternUnits="userSpaceOnUse" patternTransform="scale(1)">
+      <path d="M 40 0 L 20 11.547 L 0 0 L 0 23.094 L 20 34.641 L 40 23.094 Z M 0 34.641 L 20 46.188 L 0 57.735 L 0 80.829 L 20 92.376 L 40 80.829 L 40 57.735 L 20 46.188 Z" fill="none" stroke="#1F2937" stroke-width="0.7" opacity="0.35"/>
+    </pattern>
+  </defs>
+
+  <!-- Deep Canvas Background -->
+  <rect width="1200" height="500" fill="url(#bgGrad)" />
+  <rect width="1200" height="500" fill="url(#hexGrid)" />
+
+  <!-- Abstract Ambient Light Pods -->
+  <circle cx="600" cy="240" r="220" fill="#00F0FF" opacity="0.06" filter="url(#glowCyan)" />
+  <circle cx="300" cy="250" r="180" fill="#A855F7" opacity="0.05" filter="url(#glowPurple)" />
+  <circle cx="900" cy="250" r="180" fill="#10B981" opacity="0.05" filter="url(#glowCyan)" />
+
+  <!-- Synaptic Data Conduits (Lines between Personas) -->
+  <g stroke-linecap="round" opacity="0.6">
+    <!-- Center to nodes -->
+    <line x1="600" y1="210" x2="240" y2="120" stroke="url(#cyanPurple)" stroke-width="1.5" stroke-dasharray="4,4" />
+    <line x1="600" y1="210" x2="200" y2="280" stroke="url(#cyanPurple)" stroke-width="1.5" />
+    <line x1="600" y1="210" x2="280" y2="400" stroke="url(#cyanPurple)" stroke-width="1.5" stroke-dasharray="6,4" />
+    <line x1="600" y1="210" x2="960" y2="120" stroke="url(#emeraldCyan)" stroke-width="1.5" />
+    <line x1="600" y1="210" x2="1000" y2="280" stroke="url(#emeraldCyan)" stroke-width="1.5" stroke-dasharray="4,4" />
+    <line x1="600" y1="210" x2="920" y2="400" stroke="url(#amberPurple)" stroke-width="1.5" />
+
+    <!-- Outer Interconnections (Mesh) -->
+    <line x1="240" y1="120" x2="200" y2="280" stroke="#374151" stroke-width="1" />
+    <line x1="200" y1="280" x2="280" y2="400" stroke="#374151" stroke-width="1" />
+    <line x1="960" y1="120" x2="1000" y2="280" stroke="#374151" stroke-width="1" />
+    <line x1="1000" y1="280" x2="920" y2="400" stroke="#374151" stroke-width="1" />
+  </g>
+
+  <!-- Autonomous Persona Nodes (Hexagons + Labels) -->
+  <!-- 1. Principal Architect -->
+  <g transform="translate(240, 120)">
+    <polygon points="0,-28 24,-14 24,14 0,28 -24,14 -24,-14" fill="#0F172A" stroke="#00F0FF" stroke-width="2" filter="url(#glowCyan)"/>
+    <circle cx="0" cy="0" r="7" fill="#00F0FF" />
+    <text x="0" y="44" fill="#E2E8F0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="600" text-anchor="middle" letter-spacing="1">PRINCIPAL ARCHITECT</text>
+    <text x="0" y="58" fill="#64748B" font-family="sans-serif" font-size="9" text-anchor="middle">ADR &amp; Contracts</text>
+  </g>
+
+  <!-- 2. Staff Data Engineer -->
+  <g transform="translate(200, 280)">
+    <polygon points="0,-28 24,-14 24,14 0,28 -24,14 -24,-14" fill="#0F172A" stroke="#38BDF8" stroke-width="2" filter="url(#glowCyan)"/>
+    <circle cx="0" cy="0" r="7" fill="#38BDF8" />
+    <text x="0" y="44" fill="#E2E8F0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="600" text-anchor="middle" letter-spacing="1">STAFF DATA ENG</text>
+    <text x="0" y="58" fill="#64748B" font-family="sans-serif" font-size="9" text-anchor="middle">Iceberg • PySpark</text>
+  </g>
+
+  <!-- 3. Staff Software Engineer -->
+  <g transform="translate(280, 400)">
+    <polygon points="0,-28 24,-14 24,14 0,28 -24,14 -24,-14" fill="#0F172A" stroke="#818CF8" stroke-width="2" filter="url(#glowPurple)"/>
+    <circle cx="0" cy="0" r="7" fill="#818CF8" />
+    <text x="0" y="44" fill="#E2E8F0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="600" text-anchor="middle" letter-spacing="1">STAFF SOFTWARE ENG</text>
+    <text x="0" y="58" fill="#64748B" font-family="sans-serif" font-size="9" text-anchor="middle">Clean Arch • Hexagonal</text>
+  </g>
+
+  <!-- 4. Chaos & QA Critic -->
+  <g transform="translate(960, 120)">
+    <polygon points="0,-28 24,-14 24,14 0,28 -24,14 -24,-14" fill="#0F172A" stroke="#EF4444" stroke-width="2" filter="url(#glowPurple)"/>
+    <circle cx="0" cy="0" r="7" fill="#EF4444" />
+    <text x="0" y="44" fill="#E2E8F0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="600" text-anchor="middle" letter-spacing="1">CHAOS QA CRITIC</text>
+    <text x="0" y="58" fill="#EF4444" font-family="sans-serif" font-size="9" text-anchor="middle">Veto Power • Mutations</text>
+  </g>
+
+  <!-- 5. FinOps & Perf Tuner -->
+  <g transform="translate(1000, 280)">
+    <polygon points="0,-28 24,-14 24,14 0,28 -24,14 -24,-14" fill="#0F172A" stroke="#F59E0B" stroke-width="2"/>
+    <circle cx="0" cy="0" r="7" fill="#F59E0B" />
+    <text x="0" y="44" fill="#E2E8F0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="600" text-anchor="middle" letter-spacing="1">FINOPS TUNER</text>
+    <text x="0" y="58" fill="#64748B" font-family="sans-serif" font-size="9" text-anchor="middle">Cost &amp; Shuffle Limits</text>
+  </g>
+
+  <!-- 6. Data Governance Steward -->
+  <g transform="translate(920, 400)">
+    <polygon points="0,-28 24,-14 24,14 0,28 -24,14 -24,-14" fill="#0F172A" stroke="#10B981" stroke-width="2" filter="url(#glowCyan)"/>
+    <circle cx="0" cy="0" r="7" fill="#10B981" />
+    <text x="0" y="44" fill="#E2E8F0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="11" font-weight="600" text-anchor="middle" letter-spacing="1">DATA STEWARD</text>
+    <text x="0" y="58" fill="#10B981" font-family="sans-serif" font-size="9" text-anchor="middle">Veto Power • LGPD / PII</text>
+  </g>
+
+  <!-- Center Core: Hexagonal LangGraph / CoALA Nucleus -->
+  <g transform="translate(600, 205)">
+    <!-- Outer Rotated Hex Rings -->
+    <polygon points="0,-70 60,-35 60,35 0,70 -60,35 -60,-35" fill="none" stroke="#00F0FF" stroke-width="1.5" stroke-dasharray="8,6" opacity="0.6"/>
+    <polygon points="0,-58 50,-29 50,29 0,58 -50,29 -50,-29" fill="#0B1120" stroke="#A855F7" stroke-width="2" filter="url(#glowPurple)"/>
+    
+    <!-- Central Icon/Symbol -->
+    <circle cx="0" cy="0" r="18" fill="#00F0FF" opacity="0.2" />
+    <circle cx="0" cy="0" r="9" fill="#00F0FF" filter="url(#glowCyan)" />
+  </g>
+
+  <!-- Central Title & Badges -->
+  <text x="600" y="325" fill="#FFFFFF" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif" font-size="38" font-weight="900" text-anchor="middle" letter-spacing="5">
+    CORTEX SQUAD AI
+  </text>
+  
+  <text x="600" y="358" fill="#94A3B8" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="13.5" font-weight="500" text-anchor="middle" letter-spacing="1.2">
+    Autonomous Multi-Persona Engineering Squad • Hexagonal Architecture • CoALA • LangGraph
+  </text>
+
+  <!-- Bottom Pills / Tags -->
+  <g transform="translate(600, 420)">
+    <!-- Pill 1: Ports & Adapters -->
+    <rect x="-260" y="-15" width="160" height="30" rx="15" fill="#1E293B" stroke="#00F0FF" stroke-width="1" opacity="0.85"/>
+    <text x="-180" y="4" fill="#38BDF8" font-family="sans-serif" font-size="11" font-weight="600" text-anchor="middle">PORTS &amp; ADAPTERS</text>
+
+    <!-- Pill 2: CoALA Cognitive Loop -->
+    <rect x="-85" y="-15" width="170" height="30" rx="15" fill="#1E293B" stroke="#A855F7" stroke-width="1" opacity="0.85"/>
+    <text x="0" y="4" fill="#C084FC" font-family="sans-serif" font-size="11" font-weight="600" text-anchor="middle">COALA DELIBERATION</text>
+
+    <!-- Pill 3: Deterministic Harness -->
+    <rect x="100" y="-15" width="160" height="30" rx="15" fill="#1E293B" stroke="#10B981" stroke-width="1" opacity="0.85"/>
+    <text x="180" y="4" fill="#34D399" font-family="sans-serif" font-size="11" font-weight="600" text-anchor="middle">EMPIRICAL HARNESS</text>
+  </g>
+</svg>
