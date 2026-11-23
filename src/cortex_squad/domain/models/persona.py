@@ -11,6 +11,8 @@ class PersonaRole(StrEnum):
     CHAOS_QA_CRITIC = "chaos-qa-critic"
     FINOPS_TUNER = "finops-tuner"
     DATA_STEWARD = "data-steward"
+    PRODUCT_MANAGER = "product-manager"
+    SCRUM_MASTER = "scrum-master"
 
 
 class PersonaRoleType(StrEnum):
@@ -18,6 +20,7 @@ class PersonaRoleType(StrEnum):
     BUILDER = "builder"
     CRITIC = "critic"
     AUDITOR = "auditor"
+    FACILITATOR = "facilitator"
 
 
 @dataclass(frozen=True)

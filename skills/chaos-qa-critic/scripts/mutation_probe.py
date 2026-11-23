@@ -91,9 +91,7 @@ def _shift_iso_timestamp(value: str, hours_back: int) -> str | None:
     return result.replace("+00:00", "Z") if value.endswith("Z") else result
 
 
-def _mutate_out_of_order(
-    records: list[dict[str, Any]], rng: random.Random
-) -> list[dict[str, Any]]:
+def _mutate_out_of_order(records: list[dict[str, Any]], rng: random.Random) -> list[dict[str, Any]]:
     mutated = copy.deepcopy(records)
     if not mutated:
         return mutated
@@ -118,9 +116,7 @@ def _mutate_out_of_order(
     return mutated
 
 
-def _mutate_schema_drift(
-    records: list[dict[str, Any]], rng: random.Random
-) -> list[dict[str, Any]]:
+def _mutate_schema_drift(records: list[dict[str, Any]], rng: random.Random) -> list[dict[str, Any]]:
     mutated = copy.deepcopy(records)
     if not mutated:
         return mutated
@@ -140,9 +136,7 @@ def _mutate_schema_drift(
     return mutated
 
 
-def _mutate_duplicates(
-    records: list[dict[str, Any]], rng: random.Random
-) -> list[dict[str, Any]]:
+def _mutate_duplicates(records: list[dict[str, Any]], rng: random.Random) -> list[dict[str, Any]]:
     mutated = copy.deepcopy(records)
     if not mutated:
         return mutated
@@ -200,13 +194,9 @@ def inject_mutations(
         )
     )
     drift_part = _mutate_schema_drift(records, rng)
-    combined.append(
-        next((r for r in drift_part if "_unexpected_drift_col" in r), drift_part[-1])
-    )
+    combined.append(next((r for r in drift_part if "_unexpected_drift_col" in r), drift_part[-1]))
     dup_part = _mutate_duplicates(records, rng)
-    combined.append(
-        next((r for r in dup_part if r.get("_replay_conflict") is True), dup_part[-1])
-    )
+    combined.append(next((r for r in dup_part if r.get("_replay_conflict") is True), dup_part[-1]))
     combined.append(copy.deepcopy(records[0]))
     return combined
 

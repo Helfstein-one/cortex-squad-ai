@@ -79,3 +79,49 @@ async def test_squad_convergence_to_green_state() -> None:
     assert decision.harness_passed is True
     assert len(decision.vetoing_personas) == 0
     assert len(decision.votes) == 3
+
+
+class RecordingLLM(FakeLLMAdapter):
+    def __init__(self) -> None:
+        self.personas: list[str] = []
+
+    async def generate_response(
+        self,
+        persona: str,
+        system_prompt: str,
+        messages: list[dict[str, str]],
+        temperature: float = 0.2,
+        **kwargs: object,
+    ) -> str:
+        self.personas.append(persona)
+        return await super().generate_response(persona, system_prompt, messages)
+
+
+class FailingSandbox(FakeSandboxExecutor):
+    async def execute_harness(
+        self, workspace_path: str, test_commands: list[str] | None = None
+    ) -> HarnessReport:
+        return HarnessReport(
+            passed=False,
+            static_analysis_passed=True,
+            type_check_passed=True,
+            unit_tests_passed=False,
+            chaos_tests_passed=True,
+            raw_logs="boom",
+        )
+
+
+@pytest.mark.asyncio
+async def test_pm_runs_first_and_sm_runs_on_failure() -> None:
+    llm = RecordingLLM()
+    use_case = RunSquadMissionUseCase(
+        llm=llm,
+        memory_store=SqliteEpisodicStore(":memory:"),
+        skill_loader=MarkdownSkillLoader("skills"),
+        sandbox=FailingSandbox(),
+    )
+    decision = await use_case.execute(goal="x", workspace_path=".", max_cycles=2)
+    assert decision.approved is False
+    assert llm.personas[0] == "product-manager"
+    assert llm.personas[1] == "principal-architect"
+    assert llm.personas.count("scrum-master") == 2

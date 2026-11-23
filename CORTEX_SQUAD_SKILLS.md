@@ -829,12 +829,8 @@ _FORMATTED_WINDOW_RE = re.compile(r"(?m)^\s*\*?\(\d+\)\s+Window(?:Exec)?\b[^\n]*
 _NEXT_BLOCK_RE = re.compile(r"(?m)^[ \t]*$|^\s*\*?\(\d+\)\s+")
 _WINDOW_SPEC_RE = re.compile(r"\bwindowspecdefinition\s*\(", re.IGNORECASE)
 _OVER_CLAUSE_RE = re.compile(r"\bOVER\s*\(", re.IGNORECASE)
-_NAMED_WINDOW_RE = re.compile(
-    r"\bWINDOW\s+(?:[A-Za-z_]\w*|`[^`\n]+`)\s+AS\s*\(", re.IGNORECASE
-)
-_CHAINED_NAMED_WINDOW_RE = re.compile(
-    r"\s*,\s*(?:[A-Za-z_]\w*|`[^`\n]+`)\s+AS\s*\(", re.IGNORECASE
-)
+_NAMED_WINDOW_RE = re.compile(r"\bWINDOW\s+(?:[A-Za-z_]\w*|`[^`\n]+`)\s+AS\s*\(", re.IGNORECASE)
+_CHAINED_NAMED_WINDOW_RE = re.compile(r"\s*,\s*(?:[A-Za-z_]\w*|`[^`\n]+`)\s+AS\s*\(", re.IGNORECASE)
 _PARTITION_BY_RE = re.compile(r"\bPARTITION\s+BY\b(.*)", re.IGNORECASE | re.DOTALL)
 _OVER_BOUNDARY_RE = re.compile(
     r"\b(?:ORDER\s+BY|(?:ROWS|RANGE|GROUPS)\s+(?:BETWEEN|UNBOUNDED|CURRENT|\d))\b",
@@ -1549,9 +1545,7 @@ def _shift_iso_timestamp(value: str, hours_back: int) -> str | None:
     return result.replace("+00:00", "Z") if value.endswith("Z") else result
 
 
-def _mutate_out_of_order(
-    records: list[dict[str, Any]], rng: random.Random
-) -> list[dict[str, Any]]:
+def _mutate_out_of_order(records: list[dict[str, Any]], rng: random.Random) -> list[dict[str, Any]]:
     mutated = copy.deepcopy(records)
     if not mutated:
         return mutated
@@ -1576,9 +1570,7 @@ def _mutate_out_of_order(
     return mutated
 
 
-def _mutate_schema_drift(
-    records: list[dict[str, Any]], rng: random.Random
-) -> list[dict[str, Any]]:
+def _mutate_schema_drift(records: list[dict[str, Any]], rng: random.Random) -> list[dict[str, Any]]:
     mutated = copy.deepcopy(records)
     if not mutated:
         return mutated
@@ -1598,9 +1590,7 @@ def _mutate_schema_drift(
     return mutated
 
 
-def _mutate_duplicates(
-    records: list[dict[str, Any]], rng: random.Random
-) -> list[dict[str, Any]]:
+def _mutate_duplicates(records: list[dict[str, Any]], rng: random.Random) -> list[dict[str, Any]]:
     mutated = copy.deepcopy(records)
     if not mutated:
         return mutated
@@ -1658,13 +1648,9 @@ def inject_mutations(
         )
     )
     drift_part = _mutate_schema_drift(records, rng)
-    combined.append(
-        next((r for r in drift_part if "_unexpected_drift_col" in r), drift_part[-1])
-    )
+    combined.append(next((r for r in drift_part if "_unexpected_drift_col" in r), drift_part[-1]))
     dup_part = _mutate_duplicates(records, rng)
-    combined.append(
-        next((r for r in dup_part if r.get("_replay_conflict") is True), dup_part[-1])
-    )
+    combined.append(next((r for r in dup_part if r.get("_replay_conflict") is True), dup_part[-1]))
     combined.append(copy.deepcopy(records[0]))
     return combined
 
@@ -2070,3 +2056,12 @@ Keeps the squad unblocked and learning. Has no technical authority and no veto.
 ## Handoff
 `selected_strategy`, `retro_findings[]`, `blockers[]`, `escalate_to_human: bool`, `assumptions_to_attack[]`.
 ````
+
+---
+
+## Addendum: Runtime wiring and final manifest
+
+- Mission flow: `product-manager` (Phase 0 spec) -> `principal-architect` -> builders -> critic quorum -> Harness. On a failed cycle, `scrum-master` runs a blameless retro whose finding is stored as the `EpisodicEntry.remediation_hint`.
+- Code: `PersonaRole.PRODUCT_MANAGER`, `PersonaRole.SCRUM_MASTER`, `PersonaRoleType.FACILITATOR` in `domain/models/persona.py`; wiring in `application/use_cases/run_mission.py`.
+- Personas in this bundle: principal-architect, staff-data-engineer, staff-software-engineer, chaos-qa-critic, finops-tuner, data-steward, product-manager, scrum-master (8).
+- Veto holders: principal-architect, chaos-qa-critic, finops-tuner, data-steward. No veto: both engineers, product-manager, scrum-master.

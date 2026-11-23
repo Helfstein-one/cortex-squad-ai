@@ -66,6 +66,27 @@ class RunSquadMissionUseCase:
             semantic_catalog=semantic_catalog,
         )
 
+        # 0. Phase 0: Spec (Product Manager)
+        pm = PersonaSpec(
+            name="product-manager",
+            role=PersonaRole.PRODUCT_MANAGER,
+            role_type=PersonaRoleType.CONCEPTUALIZER,
+            description="Product Manager",
+            triggers=["prd", "requirements", "acceptance-criteria"],
+            required_ports=["ReadOnlyWorkspacePort"],
+        )
+        pm_result = await self._coala_step.execute(pm, memory_ctx)
+        memory_ctx = CoALAMemoryContext(
+            working=WorkingMemory(
+                mission_id=mission_id,
+                goal=goal,
+                current_adr=f"SPEC: {pm_result.selection_justification}",
+                active_assumptions=pm_result.assumptions_to_attack,
+            ),
+            episodic_history=episodic_history,
+            semantic_catalog=semantic_catalog,
+        )
+
         # 1. Phase 1: Conception (Principal Architect)
         architect = PersonaSpec(
             name="principal-architect",
@@ -124,6 +145,15 @@ class RunSquadMissionUseCase:
                 if not harness_report.passed
                 else f"VetoBy-{','.join(decision.vetoing_personas)}"
             )
+            sm = PersonaSpec(
+                name="scrum-master",
+                role=PersonaRole.SCRUM_MASTER,
+                role_type=PersonaRoleType.FACILITATOR,
+                description="Scrum Master",
+                triggers=["retro", "blocker", "sprint"],
+                required_ports=["ReadOnlyWorkspacePort"],
+            )
+            retro = await self._coala_step.execute(sm, memory_ctx)
             episodic_entry = EpisodicEntry(
                 id=str(uuid.uuid4()),
                 mission_id=mission_id,
@@ -131,7 +161,7 @@ class RunSquadMissionUseCase:
                 root_cause=harness_report.raw_logs[:300]
                 if not harness_report.passed
                 else "Vetoed by critical squad",
-                remediation_hint="Address test failures and review feedback.",
+                remediation_hint=retro.selection_justification or "Address test failures.",
                 persona_culprit="staff-data-engineer",
             )
             await self._memory_store.save_episodic_entry(episodic_entry)

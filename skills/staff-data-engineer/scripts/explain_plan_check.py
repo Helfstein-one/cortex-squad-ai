@@ -49,12 +49,8 @@ _FORMATTED_WINDOW_RE = re.compile(r"(?m)^\s*\*?\(\d+\)\s+Window(?:Exec)?\b[^\n]*
 _NEXT_BLOCK_RE = re.compile(r"(?m)^[ \t]*$|^\s*\*?\(\d+\)\s+")
 _WINDOW_SPEC_RE = re.compile(r"\bwindowspecdefinition\s*\(", re.IGNORECASE)
 _OVER_CLAUSE_RE = re.compile(r"\bOVER\s*\(", re.IGNORECASE)
-_NAMED_WINDOW_RE = re.compile(
-    r"\bWINDOW\s+(?:[A-Za-z_]\w*|`[^`\n]+`)\s+AS\s*\(", re.IGNORECASE
-)
-_CHAINED_NAMED_WINDOW_RE = re.compile(
-    r"\s*,\s*(?:[A-Za-z_]\w*|`[^`\n]+`)\s+AS\s*\(", re.IGNORECASE
-)
+_NAMED_WINDOW_RE = re.compile(r"\bWINDOW\s+(?:[A-Za-z_]\w*|`[^`\n]+`)\s+AS\s*\(", re.IGNORECASE)
+_CHAINED_NAMED_WINDOW_RE = re.compile(r"\s*,\s*(?:[A-Za-z_]\w*|`[^`\n]+`)\s+AS\s*\(", re.IGNORECASE)
 _PARTITION_BY_RE = re.compile(r"\bPARTITION\s+BY\b(.*)", re.IGNORECASE | re.DOTALL)
 _OVER_BOUNDARY_RE = re.compile(
     r"\b(?:ORDER\s+BY|(?:ROWS|RANGE|GROUPS)\s+(?:BETWEEN|UNBOUNDED|CURRENT|\d))\b",
