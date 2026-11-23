@@ -1,6 +1,7 @@
 """Use case for driving an end-to-end mission across the squad."""
 
 import uuid
+from dataclasses import replace
 
 from cortex_squad.application.ports.llm_port import LLMPort
 from cortex_squad.application.ports.memory_port import MemoryStorePort
@@ -13,6 +14,7 @@ from cortex_squad.domain.models.cognitive import (
     EpisodicEntry,
     WorkingMemory,
 )
+from cortex_squad.domain.models.handoff import HandoffPacket
 from cortex_squad.domain.models.persona import (
     PersonaRole,
     PersonaRoleType,
@@ -76,6 +78,9 @@ class RunSquadMissionUseCase:
             required_ports=["ReadOnlyWorkspacePort"],
         )
         pm_result = await self._coala_step.execute(pm, memory_ctx)
+        packet = HandoffPacket().with_spec(
+            pm_result.selection_justification, pm_result.assumptions_to_attack
+        )
         memory_ctx = CoALAMemoryContext(
             working=WorkingMemory(
                 mission_id=mission_id,
@@ -85,6 +90,7 @@ class RunSquadMissionUseCase:
             ),
             episodic_history=episodic_history,
             semantic_catalog=semantic_catalog,
+            handoff=packet,
         )
 
         # 1. Phase 1: Conception (Principal Architect)
@@ -99,6 +105,8 @@ class RunSquadMissionUseCase:
         )
         arch_result = await self._coala_step.execute(architect, memory_ctx)
         current_adr = arch_result.selection_justification
+        packet = packet.with_adr(current_adr, arch_result.assumptions_to_attack)
+        harness_logs: list[str] = []
 
         # 2. Iterative Construction & Empirical Convergence Loop
         for cycle in range(1, max_cycles + 1):
@@ -108,12 +116,14 @@ class RunSquadMissionUseCase:
                 current_adr=current_adr,
                 code_diffs=arch_result.code_patches,
                 active_assumptions=arch_result.assumptions_to_attack,
+                harness_logs=harness_logs,
                 iteration_count=cycle,
             )
             memory_ctx = CoALAMemoryContext(
                 working=working_mem,
                 episodic_history=episodic_history,
                 semantic_catalog=semantic_catalog,
+                handoff=packet,
             )
 
             # Phase 2: Construction (Staff Data / Software Engineer)
@@ -127,6 +137,12 @@ class RunSquadMissionUseCase:
                 veto_power=False,
             )
             eng_result = await self._coala_step.execute(engineer, memory_ctx)
+            packet = packet.with_build(
+                eng_result.files_modified,
+                eng_result.code_patches,
+                eng_result.assumptions_to_attack,
+            )
+            memory_ctx = replace(memory_ctx, handoff=packet)
 
             # Phase 3: Critical Quorum Fan-Out
             votes = await self._collect_quorum_votes(eng_result.assumptions_to_attack)
@@ -135,6 +151,7 @@ class RunSquadMissionUseCase:
             harness_report = await self._harness_step.execute(workspace_path)
 
             decision = QuorumPolicy.evaluate(votes, harness_report)
+            harness_logs = [harness_report.raw_logs[:500]]
 
             if decision.approved:
                 return decision
@@ -153,6 +170,11 @@ class RunSquadMissionUseCase:
                 triggers=["retro", "blocker", "sprint"],
                 required_ports=["ReadOnlyWorkspacePort"],
             )
+            packet = packet.with_vetoes(
+                list(decision.vetoing_personas),
+                list(harness_report.failure_signatures),
+            )
+            memory_ctx = replace(memory_ctx, handoff=packet)
             retro = await self._coala_step.execute(sm, memory_ctx)
             episodic_entry = EpisodicEntry(
                 id=str(uuid.uuid4()),

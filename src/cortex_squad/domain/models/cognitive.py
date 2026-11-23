@@ -5,6 +5,8 @@ from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Any
 
+from cortex_squad.domain.models.handoff import HandoffPacket
+
 
 class MemoryType(StrEnum):
     WORKING = "working"
@@ -59,3 +61,4 @@ class CoALAMemoryContext:
     episodic_history: list[EpisodicEntry] = field(default_factory=list)
     semantic_catalog: list[SemanticFact] = field(default_factory=list)
     deliberation_traces: list[CoALATrace] = field(default_factory=list)
+    handoff: HandoffPacket = field(default_factory=HandoffPacket)

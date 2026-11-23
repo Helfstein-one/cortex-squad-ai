@@ -125,3 +125,37 @@ async def test_pm_runs_first_and_sm_runs_on_failure() -> None:
     assert llm.personas[0] == "product-manager"
     assert llm.personas[1] == "principal-architect"
     assert llm.personas.count("scrum-master") == 2
+
+
+class PromptCapturingLLM(FakeLLMAdapter):
+    def __init__(self) -> None:
+        self.prompts: dict[str, list[str]] = {}
+
+    async def generate_response(
+        self,
+        persona: str,
+        system_prompt: str,
+        messages: list[dict[str, str]],
+        temperature: float = 0.2,
+        **kwargs: object,
+    ) -> str:
+        self.prompts.setdefault(persona, []).append(messages[0]["content"])
+        return await super().generate_response(persona, system_prompt, messages)
+
+
+@pytest.mark.asyncio
+async def test_pm_spec_and_adr_reach_engineer_and_retro_sees_failure() -> None:
+    llm = PromptCapturingLLM()
+    uc = RunSquadMissionUseCase(
+        llm=llm,
+        memory_store=SqliteEpisodicStore(":memory:"),
+        skill_loader=MarkdownSkillLoader("skills"),
+        sandbox=FailingSandbox(),
+    )
+    await uc.execute(goal="g", workspace_path=".", max_cycles=2)
+    eng = llm.prompts["staff-data-engineer"]
+    assert "SPEC (product-manager): Optimal resource and idempotency" in eng[0]
+    assert "ADR (principal-architect): Optimal resource and idempotency" in eng[0]
+    assert "boom" in eng[1]  # harness logs from cycle 1 reach cycle 2
+    assert "Handles empty dataframe" in llm.prompts["scrum-master"][0]
+    assert "CommandFailed" not in eng[0]

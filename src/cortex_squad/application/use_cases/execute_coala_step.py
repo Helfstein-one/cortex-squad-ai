@@ -77,6 +77,9 @@ MISSION GOAL: {memory_ctx.working.goal}
 CURRENT ARCHITECTURAL DECISION / CONTEXT:
 {memory_ctx.working.current_adr}
 
+HANDOFF PACKET:
+{memory_ctx.handoff.render()}
+
 EPISODIC MEMORY (PAST FAILURES TO AVOID):
 {episodic_summary}
 
