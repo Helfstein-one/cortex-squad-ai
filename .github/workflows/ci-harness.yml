@@ -1,33 +1,136 @@
 name: CI Test Harness
 
+# Stage tree: static -> unit (domain | per-persona) -> integration -> scenarios (per project question) -> gate
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  empirical-harness:
+  # Stage 1: static checks, each its own leaf
+  static:
+    name: static / ${{ matrix.check }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - check: ruff-lint
+            cmd: uv run ruff check .
+          - check: ruff-format
+            cmd: uv run ruff format --check .
+          - check: mypy-strict
+            cmd: uv run mypy --strict src
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+      - run: uv python install 3.11
+      - run: uv sync --all-extras --dev
+      - run: ${{ matrix.cmd }}
+
+  # Stage 2a: pure domain unit tests
+  unit-domain:
+    needs: static
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v3
+      - uses: astral-sh/setup-uv@v3
         with:
           enable-cache: true
+      - run: uv python install 3.11
+      - run: uv sync --all-extras --dev
+      - run: uv run pytest tests/unit/domain -v
 
-      - name: Set up Python
-        run: uv python install 3.11
+  # Stage 2b: one leaf per persona skill (L1/L2/L3 disclosure)
+  unit-skill:
+    name: unit-skill / ${{ matrix.persona }}
+    needs: static
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        persona: [principal-architect, staff-data-engineer, staff-software-engineer, chaos-qa-critic, finops-tuner, data-steward, product-manager, scrum-master]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+      - run: uv python install 3.11
+      - run: uv sync --all-extras --dev
+      - run: uv run pytest tests/unit/skills/test_per_persona.py -v -k "${{ matrix.persona }}"
 
-      - name: Install dependencies
-        run: uv sync --all-extras --dev
+  # Stage 2c: whole-suite skill integrity and bundle checks
+  unit-skill-integrity:
+    needs: static
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+      - run: uv python install 3.11
+      - run: uv sync --all-extras --dev
+      - run: uv run pytest tests/unit/skills/test_skill_integrity.py -v
+      - name: Skill scripts compile
+        run: uv run python -m py_compile skills/*/scripts/*.py
 
-      - name: Static Analysis (Ruff)
-        run: uv run ruff check .
+  # Stage 3: adapters
+  integration:
+    needs: [unit-domain, unit-skill, unit-skill-integrity]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+      - run: uv python install 3.11
+      - run: uv sync --all-extras --dev
+      - run: uv run pytest tests/integration -v
 
-      - name: Strict Type Checking (Mypy)
-        run: uv run mypy --strict src
+  # Stage 4: one leaf per project question; routing, green convergence, failure memory
+  scenario:
+    name: scenario / ${{ matrix.scenario }}
+    needs: integration
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        scenario: [iceberg-cdc, pyspark-skew, lgpd-pii, hex-api, glue-cost, dbt-contracts, schema-drift, lineage, prd, retro]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+      - run: uv python install 3.11
+      - run: uv sync --all-extras --dev
+      - run: uv run pytest tests/e2e_harness/test_scenarios.py -v -k "${{ matrix.scenario }}"
 
-      - name: Test Suite (Unit + Integration + E2E Harness)
-        run: uv run pytest -v
+  # Stage 5: convergence smoke test
+  convergence:
+    needs: integration
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+      - run: uv python install 3.11
+      - run: uv sync --all-extras --dev
+      - run: uv run pytest tests/e2e_harness/test_squad_convergence.py -v
+
+  # Final gate: single required check for branch protection
+  gate:
+    if: always()
+    needs: [static, unit-domain, unit-skill, unit-skill-integrity, integration, scenario, convergence]
+    runs-on: ubuntu-latest
+    steps:
+      - name: All leaves must pass
+        run: |
+          [ "${{ contains(needs.*.result, 'failure') }}" = "false" ] && [ "${{ contains(needs.*.result, 'cancelled') }}" = "false" ]
