@@ -33,3 +33,13 @@ def test_markdown_skill_loader_loads_l2_and_l3() -> None:
     assert len(l3_skill.body_markdown) > 50
     assert "pyspark-iceberg.md" in l3_skill.references
     assert "explain_plan_check.py" in l3_skill.scripts
+
+
+def test_pm_and_sm_personas_are_discoverable_and_loadable() -> None:
+    loader = MarkdownSkillLoader("skills")
+    names = {s.name for s in loader.discover_skills()}
+    assert {"product-manager", "scrum-master"}.issubset(names)
+    for name in ("product-manager", "scrum-master"):
+        skill = loader.load_skill(name, level=SkillLevel.L2_INSTRUCTIONS)
+        assert "Lauren Tan" in skill.body_markdown
+        assert "Handoff" in skill.body_markdown
