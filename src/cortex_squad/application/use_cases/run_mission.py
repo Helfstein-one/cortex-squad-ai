@@ -3,10 +3,12 @@
 import uuid
 from dataclasses import replace
 
+from cortex_squad.application.ports.evidence_port import EvidenceProbePort
 from cortex_squad.application.ports.llm_port import LLMPort
 from cortex_squad.application.ports.memory_port import MemoryStorePort
 from cortex_squad.application.ports.sandbox_port import SandboxExecutorPort
 from cortex_squad.application.ports.skill_port import SkillLoaderPort
+from cortex_squad.application.use_cases.collect_quorum_votes import CollectQuorumVotesUseCase
 from cortex_squad.application.use_cases.execute_coala_step import ExecuteCoALAStepUseCase
 from cortex_squad.application.use_cases.validate_harness import ValidateHarnessUseCase
 from cortex_squad.domain.models.cognitive import (
@@ -21,7 +23,6 @@ from cortex_squad.domain.models.persona import (
     PersonaSpec,
 )
 from cortex_squad.domain.models.verdict import (
-    QuorumVote,
     SquadDecision,
     VoteDecision,
 )
@@ -37,6 +38,7 @@ class RunSquadMissionUseCase:
         memory_store: MemoryStorePort,
         skill_loader: SkillLoaderPort,
         sandbox: SandboxExecutorPort,
+        evidence_probe: EvidenceProbePort | None = None,
     ):
         self._llm = llm
         self._memory_store = memory_store
@@ -44,6 +46,7 @@ class RunSquadMissionUseCase:
         self._sandbox = sandbox
         self._coala_step = ExecuteCoALAStepUseCase(llm, skill_loader)
         self._harness_step = ValidateHarnessUseCase(sandbox)
+        self._quorum = CollectQuorumVotesUseCase(llm, skill_loader, evidence_probe)
 
     async def execute(
         self,
@@ -145,7 +148,7 @@ class RunSquadMissionUseCase:
             memory_ctx = replace(memory_ctx, handoff=packet)
 
             # Phase 3: Critical Quorum Fan-Out
-            votes = await self._collect_quorum_votes(eng_result.assumptions_to_attack)
+            votes = await self._quorum.execute(memory_ctx, eng_result.code_patches)
 
             # Phase 4: Empirical Harness Verification
             harness_report = await self._harness_step.execute(workspace_path)
@@ -170,9 +173,15 @@ class RunSquadMissionUseCase:
                 triggers=["retro", "blocker", "sprint"],
                 required_ports=["ReadOnlyWorkspacePort"],
             )
+            remediations = [r for v in votes for r in v.required_remediations]
+            remediations += list(harness_report.failure_signatures)
             packet = packet.with_vetoes(
-                list(decision.vetoing_personas),
-                list(harness_report.failure_signatures),
+                [
+                    f"{v.persona}: {'; '.join(v.evidence or v.blocking_reasons)}"
+                    for v in votes
+                    if v.decision == VoteDecision.VETO
+                ],
+                remediations,
             )
             memory_ctx = replace(memory_ctx, handoff=packet)
             retro = await self._coala_step.execute(sm, memory_ctx)
@@ -190,25 +199,3 @@ class RunSquadMissionUseCase:
             episodic_history.append(episodic_entry)
 
         return decision
-
-    async def _collect_quorum_votes(self, assumptions: list[str]) -> list[QuorumVote]:
-        """Simulates or collects votes from critical personas (Chaos, FinOps, Steward)."""
-        # Data Steward check
-        steward_vote = QuorumVote(
-            persona="data-steward",
-            decision=VoteDecision.APPROVE,
-            rationale="No PII leakage detected; lineage schemas are maintained.",
-        )
-        # Chaos QA Critic
-        chaos_vote = QuorumVote(
-            persona="chaos-qa-critic",
-            decision=VoteDecision.APPROVE,
-            rationale="Edge case mutations executed in harness.",
-        )
-        # FinOps Tuner
-        finops_vote = QuorumVote(
-            persona="finops-tuner",
-            decision=VoteDecision.APPROVE,
-            rationale="Execution within nominal shuffle and DPU limits.",
-        )
-        return [steward_vote, chaos_vote, finops_vote]

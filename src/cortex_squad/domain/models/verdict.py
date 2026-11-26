@@ -11,12 +11,23 @@ class VoteDecision(StrEnum):
 
 
 @dataclass(frozen=True)
+class Evidence:
+    """Concrete, citable proof behind a vote (script output, diff line or harness log)."""
+
+    persona: str
+    kind: str  # e.g. "secret", "pii", "cartesian", "no-tests"
+    detail: str
+    hard: bool = True  # hard evidence alone justifies a veto
+
+
+@dataclass(frozen=True)
 class QuorumVote:
     persona: str
     decision: VoteDecision
     rationale: str
     blocking_reasons: list[str] = field(default_factory=list)
     required_remediations: list[str] = field(default_factory=list)
+    evidence: list[str] = field(default_factory=list)
 
 
 @dataclass(frozen=True)

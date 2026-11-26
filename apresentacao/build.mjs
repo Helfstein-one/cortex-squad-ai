@@ -1,0 +1,1618 @@
+import { writeFileSync } from "node:fs";
+
+const codeStaticFire = `class CortexQuorumPolicy:
+    """REGRA DO QUÓRUM: Aborto Imediato por Veto em 5ms.
+    
+    Nenhum agente tem poder unilateral para deploy.
+    Vetos de Segurança ou Resiliência anulam qualquer maioria.
+    """
+    def evaluate_quorum(
+        self,
+        votes: list[AgentVote],
+    ) -> QuorumDecision:
+        # Veto Absoluto do Chaos QA ou Data Steward
+        if any(v.is_veto and v.role in {"ChaosQA", "DataSteward"} for v in votes):
+            return QuorumDecision.ABORT_AND_REPAIR(reason="Veto Crítico de Segurança/Caos")
+            
+        # Requer consenso qualificado de 100% dos gates técnicos
+        if all(v.approved for v in votes):
+            return QuorumDecision.DISPATCH_TO_HARNESS(sandbox="podman_rootless")
+            
+        return QuorumDecision.REQUEST_ARCHITECT_ARBITRATION`;
+
+const fullHtml = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cortex Squad AI: Harness, Contexto, Skills e Autonomia</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #07090e;
+      --bg-surface: #0e121b;
+      --bg-card: #121824;
+      --border-subtle: #1c2436;
+      --border-bright: #2d3a54;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --accent-brass: #e6c25e;
+      --accent-flame: #ff7a2a;
+      --accent-emerald: #10b981;
+      --accent-cyan: #06b6d4;
+      --accent-rose: #f43f5e;
+      --accent-purple: #a855f7;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      overflow: hidden;
+      width: 100vw;
+      height: 100vh;
+      user-select: none;
+    }
+
+    /* Top Progress Bar */
+    .deck-progress-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent-flame), var(--accent-brass), var(--accent-cyan), var(--accent-purple));
+      width: 16.6%;
+      transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 100;
+    }
+
+    /* Minimal Header */
+    .deck-header {
+      position: fixed;
+      top: 18px;
+      left: 36px;
+      right: 36px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 50;
+      pointer-events: none;
+    }
+    .deck-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      pointer-events: auto;
+    }
+    .deck-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      background: rgba(255, 122, 42, 0.12);
+      border: 1px solid rgba(255, 122, 42, 0.35);
+      border-radius: 999px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--accent-flame);
+      letter-spacing: 0.5px;
+      font-weight: 600;
+    }
+    .deck-nav-info {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-dim);
+      background: rgba(14, 18, 27, 0.75);
+      backdrop-filter: blur(8px);
+      padding: 6px 14px;
+      border-radius: 6px;
+      border: 1px solid var(--border-subtle);
+      pointer-events: auto;
+    }
+
+    /* Slides Container */
+    .slides-wrapper {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 60px 80px 80px 80px;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(16px) scale(0.995);
+      transition: opacity 0.35s ease, transform 0.35s ease, visibility 0.35s;
+    }
+    .slide.active {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0) scale(1);
+    }
+
+    .slide-content-split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      width: 100%;
+      max-width: 1420px;
+      height: calc(100vh - 145px);
+      align-items: center;
+    }
+    .slide-content-full {
+      width: 100%;
+      max-width: 1380px;
+      height: calc(100vh - 150px);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    /* Keynote Typography */
+    .slide-tag {
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      font-weight: 600;
+      color: var(--accent-flame);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .slide-tag::before {
+      content: '';
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent-flame);
+      box-shadow: 0 0 10px var(--accent-flame);
+    }
+    .hero-h1 {
+      font-size: 44px;
+      font-weight: 800;
+      letter-spacing: -1.5px;
+      line-height: 1.15;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, #ffffff 40%, var(--accent-flame) 80%, var(--accent-brass) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero-h2 {
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      line-height: 1.2;
+      color: #ffffff;
+      margin-bottom: 12px;
+    }
+    .hero-p {
+      font-size: 16px;
+      line-height: 1.6;
+      color: var(--text-muted);
+      margin-bottom: 30px;
+      max-width: 680px;
+    }
+
+    /* 4 Pillars Clean Grid (Slide 1) */
+    .cover-pillars-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+      width: 100%;
+      margin-bottom: 32px;
+    }
+    .cover-pillar-card {
+      background: rgba(14, 18, 27, 0.85);
+      border: 1px solid var(--border-bright);
+      border-radius: 12px;
+      padding: 24px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      transition: all 0.25s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .cover-pillar-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+      border-color: var(--pillar-color);
+    }
+    .cover-pillar-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--pillar-color);
+    }
+    .cover-pillar-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .cover-pillar-tag {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--pillar-color);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .cover-pillar-icon {
+      font-size: 18px;
+    }
+    .cover-pillar-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: -0.3px;
+    }
+    .cover-pillar-desc {
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--text-muted);
+    }
+    .cover-pillar-highlight {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--pillar-color);
+      margin-top: auto;
+      padding-top: 6px;
+    }
+
+    /* Bottom Status Bar */
+    .cover-bottom-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      border-top: 1px solid var(--border-subtle);
+      padding-top: 18px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+    }
+    .cover-analogy-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-muted);
+    }
+    .cover-nav-hint {
+      color: var(--accent-flame);
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* Cards */
+    .clean-card {
+      background: rgba(14, 18, 27, 0.75);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-bright);
+      border-radius: 12px;
+      padding: 22px;
+      position: relative;
+    }
+
+    /* Raptor Frame */
+    .raptor-frame-wrapper {
+      background: #080c14;
+      border: 1px solid var(--border-bright);
+      border-radius: 12px;
+      overflow: hidden;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    }
+    .raptor-frame-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 18px;
+      background: #0d121c;
+      border-bottom: 1px solid var(--border-subtle);
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+    .raptor-iframe {
+      flex: 1;
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: #0b0b0b;
+    }
+
+    /* Harness Definition Box & Interactive Tabs */
+    .harness-hero-def {
+      background: rgba(255, 122, 42, 0.08);
+      border: 1px solid rgba(255, 122, 42, 0.3);
+      border-left: 3px solid var(--accent-flame);
+      border-radius: 8px;
+      padding: 14px 18px;
+      font-size: 13.5px;
+      line-height: 1.6;
+      color: #e2e8f0;
+      margin-bottom: 14px;
+    }
+
+    .harness-tab-nav {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+    .harness-tab-btn {
+      flex: 1;
+      background: rgba(14, 18, 27, 0.9);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      padding: 8px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: center;
+    }
+    .harness-tab-btn:hover { border-color: var(--accent-flame); color: var(--text-main); }
+    .harness-tab-btn.active {
+      background: rgba(255, 122, 42, 0.15);
+      border-color: var(--accent-flame);
+      color: #ffffff;
+      box-shadow: 0 0 10px rgba(255, 122, 42, 0.25);
+      font-weight: 600;
+    }
+
+    .harness-tab-content {
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+      flex: 1;
+      overflow-y: auto;
+    }
+    .harness-tab-content.active { display: flex; }
+
+    .harness-card-item {
+      background: rgba(14, 18, 27, 0.85);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 11px 14px;
+      font-size: 12.5px;
+      line-height: 1.5;
+    }
+    .harness-card-item strong { color: var(--text-main); }
+    .harness-card-item em { color: var(--accent-brass); font-style: normal; }
+
+    /* Slide 3: Context & Skills Layout */
+    .feature-card-col {
+      background: rgba(14, 18, 27, 0.85);
+      border: 1px solid var(--border-bright);
+      border-radius: 12px;
+      padding: 26px 24px;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      position: relative;
+    }
+    .feature-card-col::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--card-accent, var(--accent-cyan));
+    }
+    .tier-badge {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      background: rgba(255,255,255,0.06);
+      font-weight: 600;
+    }
+    .stepper-item {
+      display: flex;
+      gap: 12px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 12px 14px;
+      align-items: flex-start;
+    }
+    .stepper-num {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent-brass);
+      background: rgba(230, 194, 94, 0.12);
+      padding: 2px 7px;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+
+    /* Slide 4: Quorum & Squad Layout */
+    .persona-card {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 11px 14px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+    .persona-card:hover {
+      border-color: var(--border-bright);
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .quorum-step {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      background: rgba(14, 18, 27, 0.9);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      position: relative;
+    }
+    .quorum-arrow-down {
+      display: flex;
+      justify-content: center;
+      color: var(--accent-flame);
+      font-size: 14px;
+      margin: -2px 0;
+    }
+
+    /* Slide 5: Strategies Grid */
+    .strategies-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 22px;
+      width: 100%;
+      height: 100%;
+    }
+    .strategy-card {
+      background: rgba(14, 18, 27, 0.85);
+      border: 1px solid var(--border-bright);
+      border-radius: 12px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+    .strategy-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--strategy-color, var(--accent-flame));
+    }
+
+    /* Slide 6: Roadmap Loop Simulator */
+    .roadmap-track {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 10px;
+      margin-bottom: 20px;
+      position: relative;
+    }
+    .roadmap-node {
+      background: rgba(14, 18, 27, 0.9);
+      border: 1px solid var(--border-subtle);
+      border-radius: 10px;
+      padding: 12px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      position: relative;
+    }
+    .roadmap-node:hover {
+      border-color: var(--border-bright);
+    }
+    .roadmap-node.active {
+      border-color: var(--accent-flame);
+      background: rgba(255, 122, 42, 0.12);
+      box-shadow: 0 0 20px rgba(255, 122, 42, 0.25);
+      transform: translateY(-2px);
+    }
+    .roadmap-node.active::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--accent-flame);
+      border-radius: 10px 10px 0 0;
+    }
+    .roadmap-node.passed {
+      border-color: rgba(16, 185, 129, 0.4);
+      background: rgba(16, 185, 129, 0.05);
+    }
+    .roadmap-node.autocure {
+      border-color: var(--accent-rose);
+      background: rgba(244, 63, 94, 0.1);
+      box-shadow: 0 0 15px rgba(244, 63, 94, 0.25);
+    }
+    .roadmap-node-step {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-dim);
+    }
+    .roadmap-node.active .roadmap-node-step {
+      color: var(--accent-flame);
+    }
+    .roadmap-node.passed .roadmap-node-step {
+      color: var(--accent-emerald);
+    }
+    .roadmap-node-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #ffffff;
+      line-height: 1.3;
+    }
+    .roadmap-node-actor {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+    .roadmap-detail-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      flex: 1;
+      height: calc(100% - 150px);
+    }
+    .roadmap-console-card {
+      background: #090d15;
+      border: 1px solid var(--border-bright);
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .roadmap-console-header {
+      background: #0d121c;
+      padding: 10px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border-subtle);
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+    .roadmap-console-body {
+      padding: 14px 16px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      line-height: 1.7;
+      color: #94a3b8;
+      overflow-y: auto;
+      flex: 1;
+      max-height: 320px;
+    }
+
+    /* Deck Controls */
+    .deck-controls {
+      position: fixed;
+      bottom: 22px;
+      left: 36px;
+      right: 36px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 50;
+    }
+    .deck-nav-btn {
+      background: rgba(14, 18, 27, 0.85);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--border-bright);
+      color: var(--text-main);
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .deck-nav-btn:hover {
+      background: var(--bg-card);
+      border-color: var(--accent-flame);
+      color: #ffffff;
+      box-shadow: 0 0 15px rgba(255, 122, 42, 0.25);
+    }
+    .deck-dots { display: flex; gap: 8px; align-items: center; }
+    .slide-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--border-bright);
+      cursor: pointer;
+      transition: all 0.25s;
+    }
+    .slide-dot.active {
+      width: 28px;
+      border-radius: 4px;
+      background: var(--accent-flame);
+      box-shadow: 0 0 10px var(--accent-flame);
+    }
+
+    pre { font-family: var(--font-mono); font-size: 12px; line-height: 1.6; color: #cbd5e1; }
+    .k-kw { color: #f43f5e; font-weight: 600; }
+    .k-str { color: #34d399; }
+    .k-cls { color: #e6c25e; font-weight: 600; }
+    .k-cmt { color: #64748b; font-style: italic; }
+  </style>
+</head>
+<body>
+
+  <div class="deck-progress-bar" id="progressBar"></div>
+
+  <!-- Header -->
+  <header class="deck-header">
+    <div class="deck-brand">
+      <span class="deck-badge">CORTEX SQUAD AI</span>
+      <span style="font-family: var(--font-mono); font-size: 12px; color: var(--text-dim);">// ARQUITETURA AGÊNTICA INDUSTRIAL</span>
+    </div>
+    <div class="deck-nav-info" id="slideIndicator">Slide 1 de 6</div>
+  </header>
+
+  <!-- Slides -->
+  <main class="slides-wrapper">
+
+    <!-- ==========================================
+         SLIDE 1: CAPA CLEAN & OS 4 TEMAS FUNDAMENTAIS
+         ========================================== -->
+    <section class="slide active" data-slide="1">
+      <div class="slide-content-full">
+        <div>
+          <div class="slide-tag">Sistemas Autônomos &amp; IA</div>
+          <h1 class="hero-h1">CORTEX SQUAD AI</h1>
+          <p class="hero-p">
+            Arquitetura de sistemas inteligentes governada por quatro pilares essenciais: <strong>Harness</strong>, <strong>Janela de Contexto</strong>, <strong>Skills</strong> e <strong>Squads Agênticas</strong>.
+          </p>
+        </div>
+
+        <!-- 4 Core Themes Grid -->
+        <div class="cover-pillars-grid">
+          <!-- Pillar 1: HARNESS -->
+          <div class="cover-pillar-card" style="--pillar-color: var(--accent-flame);">
+            <div class="cover-pillar-header">
+              <span class="cover-pillar-tag">Pilar 01</span>
+              <span class="cover-pillar-icon">🔒</span>
+            </div>
+            <div class="cover-pillar-title">Harness de IA</div>
+            <p class="cover-pillar-desc">
+              Estrutura de controle, isolamento e validação. Conduz a execução de modelos e agentes dentro de ambientes seguros e testáveis, prevenindo ações descontroladas.
+            </p>
+            <div class="cover-pillar-highlight">✓ Controle, Isolamento &amp; Segurança</div>
+          </div>
+
+          <!-- Pillar 2: JANELA DE CONTEXTO -->
+          <div class="cover-pillar-card" style="--pillar-color: var(--accent-cyan);">
+            <div class="cover-pillar-header">
+              <span class="cover-pillar-tag">Pilar 02</span>
+              <span class="cover-pillar-icon">⚡</span>
+            </div>
+            <div class="cover-pillar-title">Janela de Contexto</div>
+            <p class="cover-pillar-desc">
+              Gestão estratégica da atenção e memória do modelo. Filtra e entrega apenas as informações essenciais para cada tarefa, evitando dispersão e saturação cognitiva.
+            </p>
+            <div class="cover-pillar-highlight">✓ Relevância &amp; Eficiência Cognitiva</div>
+          </div>
+
+          <!-- Pillar 3: SKILLS -->
+          <div class="cover-pillar-card" style="--pillar-color: var(--accent-brass);">
+            <div class="cover-pillar-header">
+              <span class="cover-pillar-tag">Pilar 03</span>
+              <span class="cover-pillar-icon">🧩</span>
+            </div>
+            <div class="cover-pillar-title">Skills Modulares</div>
+            <p class="cover-pillar-desc">
+              Conjunto de capacidades, ferramentas e procedimentos sob demanda. Permite desacoplar o raciocínio do modelo da execução prática de tarefas especializadas.
+            </p>
+            <div class="cover-pillar-highlight">✓ Extensibilidade &amp; Padronização</div>
+          </div>
+
+          <!-- Pillar 4: CORTEX AI SQUAD -->
+          <div class="cover-pillar-card" style="--pillar-color: var(--accent-purple);">
+            <div class="cover-pillar-header">
+              <span class="cover-pillar-tag">Pilar 04</span>
+              <span class="cover-pillar-icon">🏛️</span>
+            </div>
+            <div class="cover-pillar-title">Squad Agêntica</div>
+            <p class="cover-pillar-desc">
+              Colaboração multiagente estruturada com divisão clara de papéis e responsabilidades. Agentes especializados operam com validação cruzada e governança contínua.
+            </p>
+            <div class="cover-pillar-highlight">✓ Governança &amp; Inteligência Coletiva</div>
+          </div>
+        </div>
+
+        <!-- Bottom Status Bar -->
+        <div class="cover-bottom-bar">
+          <div class="cover-analogy-pill">
+            <span style="color: var(--accent-flame); font-weight: 700;">Analogia Central:</span>
+            <span>A Bancada de Testes de Motores de Alta Propulsão</span>
+          </div>
+          <div class="cover-nav-hint">
+            <span>Pressione [→] ou [Espaço] para iniciar</span>
+            <span>→</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         SLIDE 2: O HARNESS DE IA (MOTOR RAPTOR LIVE + ESTRUTURA COMPLETA)
+         ========================================== -->
+    <section class="slide" data-slide="2">
+      <div class="slide-content-split">
+        <!-- Interactive Anatomy Raptor Engine -->
+        <div class="raptor-frame-wrapper">
+          <div class="raptor-frame-header">
+            <span style="color: var(--accent-flame); font-weight: 700;">FIG 1.0 · RAPTOR 2 TEST STAND (ANATOMY OFFICIAL SKILL)</span>
+            <span style="color: var(--text-dim);">Pressione [I] para Ignite · Hover para explodir peças</span>
+          </div>
+          <iframe src="raptor-engine.html" class="raptor-iframe" id="raptorFrame" title="Raptor Engine Test Stand Anatomy"></iframe>
+        </div>
+
+        <!-- Harness Complete Conceptual Architecture Panel -->
+        <div style="display: flex; flex-direction: column; height: 100%; justify-content: space-between;">
+          <div>
+            <div class="slide-tag">Arquitetura de Contenção</div>
+            
+            <!-- Exact Harness Definition -->
+            <div class="harness-hero-def">
+              <strong style="color: var(--accent-flame);">Harness de IA</strong> é a estrutura de controle, isolamento e verificação que cerca um modelo ou agente de IA para que ele entregue resultados seguros e testáveis em vez de agir sem freios.
+            </div>
+
+            <!-- Analogy Mapping Card -->
+            <div class="clean-card" style="padding: 12px 16px; margin-bottom: 12px; background: rgba(14, 18, 27, 0.95);">
+              <div style="font-family: var(--font-mono); font-size: 11px; color: var(--accent-brass); margin-bottom: 6px; font-weight: 700;">// ANALOGIA: MOTOR RAPTOR</div>
+              <div style="font-size: 12.5px; line-height: 1.5; color: #cbd5e1;">
+                • <strong>Motor Raptor</strong> = modelo/agente de IA (alta potência, imprevisível sem controle).<br>
+                • <strong>Bancada de teste e contenção</strong> = harness (limita, alimenta, mede e valida antes de ir a produção).
+              </div>
+            </div>
+          </div>
+
+          <!-- 3 Interactive Tabs -->
+          <div style="display: flex; flex-direction: column; flex: 1; overflow: hidden;">
+            <div class="harness-tab-nav">
+              <button class="harness-tab-btn active" data-tab="tab-isolamento">1. Isolamento</button>
+              <button class="harness-tab-btn" data-tab="tab-componentes">2. Componentes</button>
+              <button class="harness-tab-btn" data-tab="tab-acionamento">3. Acionamento</button>
+            </div>
+
+            <!-- Tab 1: Isolamento de Teste -->
+            <div class="harness-tab-content active" id="tab-isolamento">
+              <div class="harness-card-item" style="border-left: 3px solid var(--accent-cyan);">
+                <strong>• Execução:</strong> roda em <em>sandbox</em> (container/VM/ambiente isolado), sem acesso livre a produção ou credenciais reais.
+              </div>
+              <div class="harness-card-item" style="border-left: 3px solid var(--accent-emerald);">
+                <strong>• Dados:</strong> usa <em>fixtures</em> e estado isolado por execução para evitar contaminação entre testes.
+              </div>
+              <div class="harness-card-item" style="border-left: 3px solid var(--accent-rose);">
+                <strong>• Fronteira:</strong> trava permissões e ferramentas na infraestrutura — nunca confia apenas em instrução de <em>prompt</em>.
+              </div>
+            </div>
+
+            <!-- Tab 2: Componentes -->
+            <div class="harness-tab-content" id="tab-componentes">
+              <div class="harness-card-item">
+                <strong>• Orquestrador / Driver:</strong> dispara o fluxo, controla <em>timeouts</em>, <em>retries</em> e entradas.
+              </div>
+              <div class="harness-card-item">
+                <strong>• Mocks / Stubs / Fakes:</strong> simulam APIs, bancos ou serviços externos para testes rápidos e determinísticos.
+              </div>
+              <div class="harness-card-item">
+                <strong>• Interceptação / Permissões:</strong> bloqueia ou valida ações antes da execução.
+              </div>
+              <div class="harness-card-item">
+                <strong>• Configuração / Fixtures:</strong> regras de ambiente, dados iniciais e limpeza.
+              </div>
+              <div class="harness-card-item">
+                <strong>• Telemetria e Juiz:</strong> logs, <em>traces</em>, métricas e verificações objetivas do resultado.
+              </div>
+            </div>
+
+            <!-- Tab 3: Acionamento -->
+            <div class="harness-tab-content" id="tab-acionamento">
+              <div class="harness-card-item" style="border-left: 3px solid var(--accent-brass);">
+                <strong>1. Preparar:</strong> sobe o ambiente isolado, carrega <em>fixtures</em> e define permissões.
+              </div>
+              <div class="harness-card-item" style="border-left: 3px solid var(--accent-cyan);">
+                <strong>2. Disparar:</strong> inicia a execução a partir de um evento (ex.: CI, comando ou suíte).
+              </div>
+              <div class="harness-card-item" style="border-left: 3px solid var(--accent-flame);">
+                <strong>3. Executar e ajustar:</strong> roda o fluxo sob monitoramento e <em>guardrails</em> (com correção/retentativa dentro dos limites).
+              </div>
+              <div class="harness-card-item" style="border-left: 3px solid var(--accent-emerald);">
+                <strong>4. Avaliar e limpar:</strong> valida o resultado, bloqueia se falhar e desmonta/limpa o ambiente.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         SLIDE 3: JANELA DE CONTEXTO & SKILLS MODULARES (SINTÉTICO)
+         ========================================== -->
+    <section class="slide" data-slide="3">
+      <div class="slide-content-full">
+        <div style="margin-bottom: 20px;">
+          <div class="slide-tag">Memória &amp; Extensibilidade</div>
+          <h2 class="hero-h2" style="font-size: 32px;">JANELA DE CONTEXTO &amp; SKILLS MODULARES</h2>
+          <p class="hero-p" style="max-width: 820px; margin-bottom: 0;">
+            <strong>A Regra de Ouro:</strong> A Janela de Contexto é a memória de trabalho finita. As Skills são os conhecimentos carregados sob demanda para preservá-la.
+          </p>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; flex: 1;">
+          <!-- Card 1: Janela de Contexto -->
+          <div class="feature-card-col" style="--card-accent: var(--accent-cyan); justify-content: space-between;">
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <span class="cover-pillar-tag" style="color: var(--accent-cyan);">⚡ A MEMÓRIA DE TRABALHO</span>
+                <span class="tier-badge" style="color: var(--accent-cyan); border: 1px solid rgba(6, 182, 212, 0.3);">Recurso Finito</span>
+              </div>
+              <h3 style="font-size: 22px; font-weight: 700; color: #ffffff; margin-bottom: 14px;">Janela de Contexto</h3>
+
+              <div style="display: flex; flex-direction: column; gap: 10px;">
+                <div class="stepper-item" style="border-left: 3px solid var(--accent-rose); padding: 10px 12px;">
+                  <div>
+                    <strong style="font-size: 13px; color: var(--accent-rose);">✕ Risco: Attention Rot</strong>
+                    <p style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+                      Mais tokens não significa mais inteligência. Prompts sobrecarregados causam perda de foco e alucinações.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="stepper-item" style="border-left: 3px solid var(--accent-cyan); padding: 10px 12px;">
+                  <div>
+                    <strong style="font-size: 13px; color: #ffffff;">✓ Injeção Cirúrgica</strong>
+                    <p style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+                      RAG e busca AST: entrega estritamente os trechos de código e contexto essenciais para a tarefa imediata.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="stepper-item" style="border-left: 3px solid var(--accent-emerald); padding: 10px 12px;">
+                  <div>
+                    <strong style="font-size: 13px; color: #ffffff;">✓ Destilação Contínua</strong>
+                    <p style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+                      Compressão em tempo real do histórico entre iterações para manter a inferência rápida, coerente e barata.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style="margin-top: 14px; padding: 10px 14px; background: rgba(6, 182, 212, 0.08); border-radius: 8px; font-size: 12px; color: #cbd5e1; font-family: var(--font-mono); border: 1px solid rgba(6, 182, 212, 0.25);">
+              Meta: Contexto enxuto = Máxima acurácia lógica
+            </div>
+          </div>
+
+          <!-- Card 2: Skills Modulares -->
+          <div class="feature-card-col" style="--card-accent: var(--accent-brass); justify-content: space-between;">
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <span class="cover-pillar-tag" style="color: var(--accent-brass);">🧩 CAPACIDADE SOB DEMANDA</span>
+                <span class="tier-badge" style="color: var(--accent-brass); border: 1px solid rgba(230, 194, 94, 0.3);">agentskills.io</span>
+              </div>
+              <h3 style="font-size: 22px; font-weight: 700; color: #ffffff; margin-bottom: 14px;">Skills Modulares</h3>
+
+              <div style="display: flex; flex-direction: column; gap: 10px;">
+                <div class="stepper-item" style="padding: 10px 12px;">
+                  <span class="stepper-num">L1</span>
+                  <div>
+                    <strong style="font-size: 13px; color: #ffffff;">Metadados no Catálogo (~100t)</strong>
+                    <p style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+                      Descoberta passiva: o agente reconhece a capacidade disponível sem poluir a janela de contexto.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="stepper-item" style="padding: 10px 12px;">
+                  <span class="stepper-num">L2</span>
+                  <div>
+                    <strong style="font-size: 13px; color: #ffffff;">Instruções sob Gatilho (~1k)</strong>
+                    <p style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+                      Carregamento sob demanda: procedimentos e regras são lidos apenas no exato momento da execução.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="stepper-item" style="padding: 10px 12px;">
+                  <span class="stepper-num">L3</span>
+                  <div>
+                    <strong style="font-size: 13px; color: #ffffff;">Execução Isolada de Scripts</strong>
+                    <p style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">
+                      Processamento computacional fora do prompt, retornando apenas o veredito sintetizado.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style="margin-top: 14px; padding: 10px 14px; background: rgba(230, 194, 94, 0.08); border-radius: 8px; font-size: 12px; color: #cbd5e1; font-family: var(--font-mono); border: 1px solid rgba(230, 194, 94, 0.25);">
+              Sinergia: Skills blindam o contexto ao desacoplar raciocínio e ferramentas
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         SLIDE 4: CORTEX AI: OPERAÇÃO EM QUÓRUM & VETO (COM PADRÃO COALA)
+         ========================================== -->
+    <section class="slide" data-slide="4">
+      <div class="slide-content-split">
+        <!-- Esquerda: A Squad & Padrão Cognitivo CoALA -->
+        <div style="display: flex; flex-direction: column; height: 100%; justify-content: space-between;">
+          <div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <div class="slide-tag" style="margin-bottom: 0;">Arquitetura Cognitiva CoALA</div>
+              <span class="tier-badge" style="color: var(--accent-purple); border: 1px solid rgba(168, 85, 247, 0.3);">Sumers et al. / Princeton</span>
+            </div>
+            <h2 class="hero-h2" style="font-size: 26px; margin-bottom: 6px;">CORTEX AI &amp; PADRÃO COGNITIVO CoALA</h2>
+            <p style="font-size: 13px; color: var(--text-muted); line-height: 1.4; margin-bottom: 12px;">
+              A squad baseia-se no padrão <strong>CoALA</strong> (<em>Cognitive Architectures for Language Agents</em>), estruturando a cognição em 4 sistemas de memória:
+            </p>
+
+            <!-- CoALA 4 Memory Systems Grid -->
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 14px;">
+              <div style="background: rgba(14, 18, 27, 0.9); border: 1px solid var(--border-subtle); border-left: 3px solid var(--accent-cyan); padding: 8px 10px; border-radius: 6px;">
+                <div style="font-family: var(--font-mono); font-size: 10px; color: var(--accent-cyan); font-weight: 700;">WORKING MEMORY</div>
+                <div style="font-size: 11.5px; color: #cbd5e1; margin-top: 2px;">Janela de contexto ativa com foco estrito na tarefa imediata.</div>
+              </div>
+              <div style="background: rgba(14, 18, 27, 0.9); border: 1px solid var(--border-subtle); border-left: 3px solid var(--accent-rose); padding: 8px 10px; border-radius: 6px;">
+                <div style="font-family: var(--font-mono); font-size: 10px; color: var(--accent-rose); font-weight: 700;">EPISODIC MEMORY</div>
+                <div style="font-size: 11.5px; color: #cbd5e1; margin-top: 2px;">Histórico de execuções passadas, regressões e lições aprendidas.</div>
+              </div>
+              <div style="background: rgba(14, 18, 27, 0.9); border: 1px solid var(--border-subtle); border-left: 3px solid var(--accent-brass); padding: 8px 10px; border-radius: 6px;">
+                <div style="font-family: var(--font-mono); font-size: 10px; color: var(--accent-brass); font-weight: 700;">SEMANTIC MEMORY</div>
+                <div style="font-size: 11.5px; color: #cbd5e1; margin-top: 2px;">Grafo de conhecimento, regras de negócio e arquitetura de código.</div>
+              </div>
+              <div style="background: rgba(14, 18, 27, 0.9); border: 1px solid var(--border-subtle); border-left: 3px solid var(--accent-emerald); padding: 8px 10px; border-radius: 6px;">
+                <div style="font-family: var(--font-mono); font-size: 10px; color: var(--accent-emerald); font-weight: 700;">PROCEDURAL MEMORY</div>
+                <div style="font-size: 11.5px; color: #cbd5e1; margin-top: 2px;">Catálogo de Skills modulares e ferramentas de execução sob demanda.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Personas Especializadas da Squad -->
+          <div>
+            <div style="font-family: var(--font-mono); font-size: 10.5px; color: var(--text-dim); margin-bottom: 6px; font-weight: 600;">
+              // SQUAD ESPECIALIZADA (DIVISÃO DE PODERES):
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <div class="persona-card" style="border-left: 3px solid var(--accent-cyan); padding: 8px 12px;">
+                <div>
+                  <strong style="font-size: 12px; color: #ffffff;">📐 Product / Architect</strong>
+                  <span style="font-size: 11px; color: var(--text-muted); margin-left: 6px;">· Decompõe épicos e contratos de API</span>
+                </div>
+                <span class="tier-badge" style="color: var(--accent-cyan); font-size: 10px; padding: 2px 6px;">Gate P0</span>
+              </div>
+
+              <div class="persona-card" style="border-left: 3px solid #3b82f6; padding: 8px 12px;">
+                <div>
+                  <strong style="font-size: 12px; color: #ffffff;">🛠️ Builder Developer</strong>
+                  <span style="font-size: 11px; color: var(--text-muted); margin-left: 6px;">· Implementação cirúrgica e TDD</span>
+                </div>
+                <span class="tier-badge" style="color: #3b82f6; font-size: 10px; padding: 2px 6px;">Execução</span>
+              </div>
+
+              <div class="persona-card" style="border-left: 3px solid var(--accent-rose); background: rgba(244, 63, 94, 0.05); padding: 8px 12px;">
+                <div>
+                  <strong style="font-size: 12px; color: var(--accent-rose);">⚡ Chaos QA Critic</strong>
+                  <span style="font-size: 11px; color: var(--text-muted); margin-left: 6px;">· Injeta falhas e estresse de carga</span>
+                </div>
+                <span class="tier-badge" style="color: var(--accent-rose); background: rgba(244, 63, 94, 0.15); font-weight: 700; font-size: 10px; padding: 2px 6px;">VETO ABSOLUTO</span>
+              </div>
+
+              <div class="persona-card" style="border-left: 3px solid var(--accent-purple); background: rgba(168, 85, 247, 0.05); padding: 8px 12px;">
+                <div>
+                  <strong style="font-size: 12px; color: var(--accent-purple);">🛡️ Data &amp; Security Steward</strong>
+                  <span style="font-size: 11px; color: var(--text-muted); margin-left: 6px;">· Audita credenciais e PII/LGPD</span>
+                </div>
+                <span class="tier-badge" style="color: var(--accent-purple); background: rgba(168, 85, 247, 0.15); font-weight: 700; font-size: 10px; padding: 2px 6px;">VETO ABSOLUTO</span>
+              </div>
+
+              <div class="persona-card" style="border-left: 3px solid var(--accent-emerald); padding: 8px 12px;">
+                <div>
+                  <strong style="font-size: 12px; color: #ffffff;">🚢 Release Pilot</strong>
+                  <span style="font-size: 11px; color: var(--text-muted); margin-left: 6px;">· Empacota artefato para o Harness</span>
+                </div>
+                <span class="tier-badge" style="color: var(--accent-emerald); font-size: 10px; padding: 2px 6px;">Despacho</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Direita: Diagrama de Deliberação em Quórum -->
+        <div class="clean-card" style="display: flex; flex-direction: column; height: 100%; justify-content: space-between;">
+          <div>
+            <div style="font-family: var(--font-mono); font-size: 11px; color: var(--accent-flame); margin-bottom: 12px; font-weight: 700;">
+              // DIAGRAMA DE DELIBERAÇÃO EM QUÓRUM
+            </div>
+
+            <!-- Visual Flow Steps -->
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <div class="quorum-step">
+                <span class="stepper-num" style="background: rgba(6, 182, 212, 0.2); color: var(--accent-cyan);">01</span>
+                <div style="font-size: 12px;">
+                  <strong style="color: #ffffff;">Proposta de Feature</strong>: Architect aprova spec &rarr; Builder gera o patch de código.
+                </div>
+              </div>
+
+              <div class="quorum-arrow-down">↓</div>
+
+              <div class="quorum-step" style="border-color: rgba(244, 63, 94, 0.3);">
+                <span class="stepper-num" style="background: rgba(244, 63, 94, 0.2); color: var(--accent-rose);">02</span>
+                <div style="font-size: 12px;">
+                  <strong style="color: #ffffff;">Inspeção Cruzada &amp; Câmara de Veto</strong>: Chaos QA injeta testes de estresse; Data Steward checa dados.
+                </div>
+              </div>
+
+              <div class="quorum-arrow-down">↓</div>
+
+              <div class="quorum-step" style="background: rgba(255, 122, 42, 0.08); border-color: rgba(255, 122, 42, 0.35);">
+                <span class="stepper-num" style="background: rgba(255, 122, 42, 0.2); color: var(--accent-flame);">03</span>
+                <div style="font-size: 12px;">
+                  <strong style="color: #ffffff;">Votação do Quórum</strong>: 1 Veto = <span style="color: var(--accent-rose); font-weight: 700;">ABORTO IMEDIATO (5ms)</span>. Luz verde unânime = Aprovado.
+                </div>
+              </div>
+
+              <div class="quorum-arrow-down">↓</div>
+
+              <div class="quorum-step" style="border-color: rgba(16, 185, 129, 0.35);">
+                <span class="stepper-num" style="background: rgba(16, 185, 129, 0.2); color: var(--accent-emerald);">04</span>
+                <div style="font-size: 12px;">
+                  <strong style="color: #ffffff;">Disparo para o Harness</strong>: Código aprovado entra na sandbox Podman para testes finais determinísticos.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- High-Level Executive Quorum Policy Box (Sem Código) -->
+          <div style="margin-top: 14px; background: rgba(14, 18, 27, 0.95); padding: 16px; border-radius: 10px; border: 1px solid var(--border-bright); border-left: 3px solid var(--accent-flame);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+              <span style="font-family: var(--font-mono); font-size: 11px; color: var(--accent-flame); font-weight: 700; letter-spacing: 0.5px;">POLÍTICA DE GOVERNANÇA DO QUÓRUM</span>
+              <span style="font-family: var(--font-mono); font-size: 10px; color: var(--accent-emerald); background: rgba(16, 185, 129, 0.12); padding: 2px 8px; border-radius: 4px;">ALTO NÍVEL</span>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+              <div style="font-size: 12px; line-height: 1.5; color: #cbd5e1;">
+                <strong style="color: #ffffff;">1. Princípio da Não-Soberania:</strong> Nenhum agente possui autoridade unilateral para liberar código ou alterar o ambiente sem escrutínio do colegiado.
+              </div>
+              <div style="font-size: 12px; line-height: 1.5; color: #cbd5e1;">
+                <strong style="color: var(--accent-rose);">2. Supremacia do Veto Técnico:</strong> A maioria simples nunca anula vetos de segurança (Data Steward) ou resiliência (Chaos QA). Um único veto suspende a esteira imediatamente.
+              </div>
+              <div style="font-size: 12px; line-height: 1.5; color: #cbd5e1;">
+                <strong style="color: var(--accent-emerald);">3. Veredito Empírico Obrigatório:</strong> O consenso autoriza apenas o envio para a bancada de contenção (Harness). Apenas a aprovação empírica em sandbox sela o deploy final.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         SLIDE 5: ESTRATÉGIAS DE SQUADS & FORMAS DE TRABALHO
+         ========================================== -->
+    <section class="slide" data-slide="5">
+      <div class="slide-content-full">
+        <div>
+          <div class="slide-tag">Engenharia Agêntica no Mundo Real</div>
+          <h2 class="hero-h2" style="font-size: 32px;">ESTRATÉGIAS DE TRABALHO &amp; ORQUESTRAÇÃO</h2>
+          <p class="hero-p" style="max-width: 900px; margin-bottom: 24px;">
+            Como organizar a interação humano-agente e orquestrar features de ponta a ponta com segurança corporativa.
+          </p>
+        </div>
+
+        <div class="strategies-grid">
+          <!-- Card 1: Modelos de Trabalho -->
+          <div class="strategy-card" style="--strategy-color: var(--accent-cyan);">
+            <div style="font-family: var(--font-mono); font-size: 11px; color: var(--accent-cyan); font-weight: 700; margin-bottom: 8px; text-transform: uppercase;">
+              01 · Modelos de Trabalho
+            </div>
+            <h3 style="font-size: 18px; font-weight: 700; color: #ffffff; margin-bottom: 14px;">Dinâmica de Squad</h3>
+
+            <div style="display: flex; flex-direction: column; gap: 12px; flex: 1;">
+              <div style="font-size: 12.5px; line-height: 1.5;">
+                <strong style="color: #ffffff;">• Continuous Static Fire:</strong>
+                <p style="color: var(--text-muted); margin-top: 2px;">Nenhum commit entra na branch principal sem passar pelo ciclo de validação agêntica e execução hermética em sandbox.</p>
+              </div>
+
+              <div style="font-size: 12.5px; line-height: 1.5;">
+                <strong style="color: #ffffff;">• Feature-Driven Swarm:</strong>
+                <p style="color: var(--text-muted); margin-top: 2px;">Para épicos grandes, a squad fatiará em micro-tarefas paralelas com contextos enxutos, convergindo no Quórum final.</p>
+              </div>
+
+              <div style="font-size: 12.5px; line-height: 1.5;">
+                <strong style="color: #ffffff;">• Pair Programming Humano-Squad:</strong>
+                <p style="color: var(--text-muted); margin-top: 2px;">O humano atua como Diretor de Missão (diretrizes de produto); os agentes assumem a codificação, testes e auditoria.</p>
+              </div>
+            </div>
+
+            <div style="margin-top: 16px; padding: 8px 12px; background: rgba(6, 182, 212, 0.08); border-radius: 6px; font-size: 11px; color: var(--accent-cyan); font-family: var(--font-mono);">
+              ✓ Separação de intenção humana e execução técnica
+            </div>
+          </div>
+
+          <!-- Card 2: Orquestração de Features -->
+          <div class="strategy-card" style="--strategy-color: var(--accent-flame);">
+            <div style="font-family: var(--font-mono); font-size: 11px; color: var(--accent-flame); font-weight: 700; margin-bottom: 8px; text-transform: uppercase;">
+              02 · Ciclo Real de Feature
+            </div>
+            <h3 style="font-size: 18px; font-weight: 700; color: #ffffff; margin-bottom: 14px;">Orquestração Ponta a Ponta</h3>
+
+            <div style="display: flex; flex-direction: column; gap: 10px; flex: 1;">
+              <div class="stepper-item" style="padding: 8px 10px;">
+                <span class="stepper-num" style="font-size: 10px;">REQ</span>
+                <span style="font-size: 12px; color: #cbd5e1;"><em>"Criar checkout assíncrono com idempotência e retry"</em></span>
+              </div>
+
+              <div style="font-size: 12px; color: var(--text-muted); line-height: 1.5;">
+                • <strong style="color: #ffffff;">Architect:</strong> Define contrato OpenAPI, locks distribuídos e payload idempotente.<br>
+                • <strong style="color: #ffffff;">Builder:</strong> Escreve o endpoint em FastAPI com worker Redis e suíte de testes.<br>
+                • <strong style="color: var(--accent-rose);">Chaos QA:</strong> Simula queda do Redis e timeouts de rede concorrentes.<br>
+                • <strong style="color: var(--accent-purple);">Data Steward:</strong> Audita mascaramento de dados de cartão e chaves sensíveis.<br>
+                • <strong style="color: var(--accent-emerald);">Harness:</strong> Sobe container efêmero e executa 100% de testes determinísticos.
+              </div>
+            </div>
+
+            <div style="margin-top: 16px; padding: 8px 12px; background: rgba(255, 122, 42, 0.08); border-radius: 6px; font-size: 11px; color: var(--accent-flame); font-family: var(--font-mono);">
+              ✓ Da especificação ao container em minutos
+            </div>
+          </div>
+
+          <!-- Card 3: Governança & Imunidade -->
+          <div class="strategy-card" style="--strategy-color: var(--accent-emerald);">
+            <div style="font-family: var(--font-mono); font-size: 11px; color: var(--accent-emerald); font-weight: 700; margin-bottom: 8px; text-transform: uppercase;">
+              03 · Ganhos Corporativos
+            </div>
+            <h3 style="font-size: 18px; font-weight: 700; color: #ffffff; margin-bottom: 14px;">Imunidade &amp; Velocidade</h3>
+
+            <div style="display: flex; flex-direction: column; gap: 12px; flex: 1;">
+              <div style="font-size: 12.5px; line-height: 1.5;">
+                <strong style="color: #ffffff;">• Imunidade Contínua (Anticorpos):</strong>
+                <p style="color: var(--text-muted); margin-top: 2px;">Toda falha interceptada pelo Chaos QA ou Harness é persistida na memória de skills, impedindo que o erro se repita.</p>
+              </div>
+
+              <div style="font-size: 12.5px; line-height: 1.5;">
+                <strong style="color: #ffffff;">• Velocidade com Confinamento:</strong>
+                <p style="color: var(--text-muted); margin-top: 2px;">O time de engenharia acelera entregas com total tranquilidade, pois a bancada de testes bloqueia regressões em tempo real.</p>
+              </div>
+
+              <div style="font-size: 12.5px; line-height: 1.5;">
+                <strong style="color: #ffffff;">• Eficiência e Baixo Custo:</strong>
+                <p style="color: var(--text-muted); margin-top: 2px;">Skills modulares e contexto cirúrgico reduzem o consumo de tokens em mais de 70% frente a prompts monolíticos.</p>
+              </div>
+            </div>
+
+            <div style="margin-top: 16px; display: flex; gap: 8px;">
+              <button class="action-btn" id="btnGoToRoadmap" style="background: var(--accent-flame); border: none; color: #000000; font-weight: 700; font-family: var(--font-mono); font-size: 11px; padding: 8px 14px; border-radius: 6px; cursor: pointer; width: 100%;">
+                Ver Roadmap em Execução (Slide 6) →
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================
+         SLIDE 6: ROADMAP DE UMA FEATURE (LOOP EM EXECUÇÃO)
+         ========================================== -->
+    <section class="slide" data-slide="6">
+      <div class="slide-content-full">
+        <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 16px;">
+          <div>
+            <div class="slide-tag">Execução Autônoma em Loop</div>
+            <h2 class="hero-h2" style="font-size: 28px; margin-bottom: 4px;">ROADMAP DA FEATURE: O LOOP AGÊNTICO EM AÇÃO</h2>
+            <p style="font-size: 13.5px; color: var(--text-muted); margin-bottom: 0;">
+              Feature de Exemplo: <strong>"Webhook Seguro com Assinatura HMAC e Retentativa Exponencial"</strong>
+            </p>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <button class="deck-nav-btn" id="btnToggleRoadmapLoop" style="padding: 6px 14px; font-size: 11px; border-color: var(--accent-flame); color: var(--accent-flame);">
+              ⏸ Pausar Simulação
+            </button>
+            <button class="deck-nav-btn" id="btnStepRoadmap" style="padding: 6px 14px; font-size: 11px;">
+              Próxima Fase →
+            </button>
+          </div>
+        </div>
+
+        <!-- 6 Phases Horizontal Track -->
+        <div class="roadmap-track" id="roadmapTrack">
+          <div class="roadmap-node active" data-phase="1">
+            <span class="roadmap-node-step">FASE 01</span>
+            <div class="roadmap-node-title">Spec &amp; Contrato</div>
+            <span class="roadmap-node-actor">📐 Architect (Gate P0)</span>
+          </div>
+
+          <div class="roadmap-node" data-phase="2">
+            <span class="roadmap-node-step">FASE 02</span>
+            <div class="roadmap-node-title">TDD &amp; Código</div>
+            <span class="roadmap-node-actor">🛠️ Builder (Skills L2)</span>
+          </div>
+
+          <div class="roadmap-node" data-phase="3">
+            <span class="roadmap-node-step">FASE 03</span>
+            <div class="roadmap-node-title">Stress &amp; Caos</div>
+            <span class="roadmap-node-actor">⚡ Chaos QA &amp; Security</span>
+          </div>
+
+          <div class="roadmap-node" data-phase="4">
+            <span class="roadmap-node-step">FASE 04</span>
+            <div class="roadmap-node-title">Quórum &amp; Veto</div>
+            <span class="roadmap-node-actor">🏛️ Escrutínio 5ms</span>
+          </div>
+
+          <div class="roadmap-node" data-phase="5">
+            <span class="roadmap-node-step">FASE 05</span>
+            <div class="roadmap-node-title">Harness Sandbox</div>
+            <span class="roadmap-node-actor">🔒 Podman Rootless</span>
+          </div>
+
+          <div class="roadmap-node" data-phase="6">
+            <span class="roadmap-node-step">FASE 06</span>
+            <div class="roadmap-node-title">Deploy &amp; Anticorpos</div>
+            <span class="roadmap-node-actor">🔁 Loop Contínuo</span>
+          </div>
+        </div>
+
+        <!-- Detail Split: Active Phase Info & Live Telemetry Stream -->
+        <div class="roadmap-detail-grid">
+          <!-- Active Phase Card -->
+          <div class="clean-card" style="display: flex; flex-direction: column; justify-content: space-between; border-left: 3px solid var(--accent-flame);" id="phaseDetailCard">
+            <div>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <span style="font-family: var(--font-mono); font-size: 11px; color: var(--accent-flame); font-weight: 700;" id="phaseDetailBadge">FASE 01 ATIVA</span>
+                <span class="tier-badge" id="phaseCoALABadge" style="color: var(--accent-brass); border: 1px solid rgba(230, 194, 94, 0.3);">CoALA: Semantic Memory</span>
+              </div>
+              <h3 style="font-size: 20px; font-weight: 700; color: #ffffff; margin-bottom: 10px;" id="phaseDetailTitle">Especificação do Contrato de API</h3>
+              <p style="font-size: 13px; color: var(--text-muted); line-height: 1.6; margin-bottom: 16px;" id="phaseDetailDesc">
+                O Product Architect consome os requisitos de negócio, pesquisa a memória semântica do repositório e gera a especificação formal OpenAPI/ADR com o esquema de assinatura HMAC-SHA256.
+              </p>
+
+              <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-subtle); border-radius: 8px; padding: 12px; font-size: 12px;" id="phaseDetailAction">
+                <strong style="color: #ffffff;">Ação do Agente:</strong>
+                <span style="color: #cbd5e1; margin-left: 4px;">Validação de tipagem e geração dos contratos de interface antes de qualquer linha de código.</span>
+              </div>
+            </div>
+
+            <!-- Loop Indicator -->
+            <div style="padding: 10px 14px; background: rgba(255, 122, 42, 0.08); border-radius: 8px; font-size: 11.5px; color: #cbd5e1; display: flex; justify-content: space-between; align-items: center; border: 1px dashed rgba(255, 122, 42, 0.3);">
+              <span>🔄 <strong>Autocura em Loop:</strong> Qualquer veto de segurança ou resiliência retrocede o código para refatoração em 5ms.</span>
+              <span style="font-family: var(--font-mono); color: var(--accent-flame); font-size: 11px;" id="roadmapLoopStatus">Status: Em Execução</span>
+            </div>
+          </div>
+
+          <!-- Telemetry Terminal Stream -->
+          <div class="roadmap-console-card">
+            <div class="roadmap-console-header">
+              <span style="color: var(--accent-emerald);">● TELEMETRIA DA SQUAD EM TEMPO REAL</span>
+              <span style="color: var(--text-dim);" id="loopCounter">Ciclo #1 · Em Execução</span>
+            </div>
+            <div class="roadmap-console-body" id="roadmapConsoleBody">
+              <!-- Logs injected by JavaScript -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Controls -->
+  <footer class="deck-controls">
+    <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); display: flex; align-items: center; gap: 8px;">
+      <span>Navegação:</span>
+      <span style="background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 4px; color: var(--text-muted);">←</span>
+      <span style="background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 4px; color: var(--text-muted);">→</span>
+      <span style="background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 4px; color: var(--text-muted);">Espaço</span>
+      <span>|</span>
+      <span style="background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 4px; color: var(--text-muted);">F</span> Fullscreen
+    </div>
+
+    <div class="deck-dots" id="dotsContainer">
+      <div class="slide-dot active" data-goto="1"></div>
+      <div class="slide-dot" data-goto="2"></div>
+      <div class="slide-dot" data-goto="3"></div>
+      <div class="slide-dot" data-goto="4"></div>
+      <div class="slide-dot" data-goto="5"></div>
+      <div class="slide-dot" data-goto="6"></div>
+    </div>
+
+    <div style="display: flex; gap: 8px;">
+      <button class="deck-nav-btn" id="btnPrev">← Anterior</button>
+      <button class="deck-nav-btn" id="btnNext">Próximo →</button>
+    </div>
+  </footer>
+
+  <script>
+    let currentSlide = 1;
+    const totalSlides = 6;
+    const slides = document.querySelectorAll(".slide");
+    const dots = document.querySelectorAll(".slide-dot");
+    const progressBar = document.getElementById("progressBar");
+    const slideIndicator = document.getElementById("slideIndicator");
+
+    function goToSlide(n) {
+      if (n < 1 || n > totalSlides) return;
+      slides[currentSlide - 1].classList.remove("active");
+      dots[currentSlide - 1].classList.remove("active");
+      currentSlide = n;
+      slides[currentSlide - 1].classList.add("active");
+      dots[currentSlide - 1].classList.add("active");
+
+      progressBar.style.width = ((currentSlide / totalSlides) * 100) + "%";
+      slideIndicator.textContent = \`Slide \${currentSlide} de \${totalSlides}\`;
+    }
+
+    document.getElementById("btnNext").addEventListener("click", () => goToSlide(currentSlide + 1));
+    document.getElementById("btnPrev").addEventListener("click", () => goToSlide(currentSlide - 1));
+    document.getElementById("btnGoToRoadmap")?.addEventListener("click", () => goToSlide(6));
+
+    dots.forEach(d => {
+      d.addEventListener("click", () => goToSlide(parseInt(d.dataset.goto, 10)));
+    });
+
+    // Keyboard navigation
+    window.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") {
+        e.preventDefault();
+        goToSlide(currentSlide + 1);
+      } else if (e.key === "ArrowLeft" || e.key === "PageUp") {
+        e.preventDefault();
+        goToSlide(currentSlide - 1);
+      } else if (e.key === "Home") {
+        goToSlide(1);
+      } else if (e.key === "End") {
+        goToSlide(totalSlides);
+      } else if (e.key.toLowerCase() === "f") {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        } else {
+          document.exitFullscreen().catch(() => {});
+        }
+      }
+    });
+
+    // Interactive Harness Tabs (Slide 2)
+    document.querySelectorAll(".harness-tab-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".harness-tab-btn").forEach(b => b.classList.remove("active"));
+        document.querySelectorAll(".harness-tab-content").forEach(c => c.classList.remove("active"));
+        btn.classList.add("active");
+        const target = btn.dataset.tab;
+        document.getElementById(target)?.classList.add("active");
+      });
+    });
+
+    // ==========================================
+    // Slide 6: Roadmap Loop Simulator Engine
+    // ==========================================
+    const roadmapPhases = [
+      {
+        num: 1,
+        title: "Especificação & Contrato de API",
+        badge: "FASE 01 ATIVA",
+        coala: "CoALA: Semantic Memory",
+        desc: "O Product Architect consome os requisitos de negócio, pesquisa a memória semântica do repositório e gera a especificação formal OpenAPI/ADR para o webhook HMAC-SHA256.",
+        action: "Aprovação de contrato (Gate P0). Requisitos convertidos em schema de dados imutável.",
+        logs: [
+          { agent: "ARCHITECT", color: "#06b6d4", msg: "Requisito lido: Webhook seguro com assinatura HMAC e retry." },
+          { agent: "ARCHITECT", color: "#06b6d4", msg: "Contrato OpenAPI/ADR gerado com sucesso. Gate P0 APROVADO." }
+        ]
+      },
+      {
+        num: 2,
+        title: "TDD & Implementação Cirúrgica",
+        badge: "FASE 02 ATIVA",
+        coala: "CoALA: Procedural Memory (Skills)",
+        desc: "O Builder Developer ativa a Skill 'crypto-webhook' (L2), cria suíte de testes unitários falhando (TDD) e escreve o código com injeção cirúrgica de contexto.",
+        action: "Implementação em FastAPI com middleware de assinatura e worker Redis assíncrono.",
+        logs: [
+          { agent: "BUILDER", color: "#3b82f6", msg: "Carregando Skill 'crypto-webhook' (padrão agentskills.io)." },
+          { agent: "BUILDER", color: "#3b82f6", msg: "TDD: 6 testes unitários criados. Código cirúrgico implementado." }
+        ]
+      },
+      {
+        num: 3,
+        title: "Stress & Adversarial Testing",
+        badge: "FASE 03 ATIVA",
+        coala: "CoALA: Episodic Memory",
+        desc: "O Chaos QA injeta partições de rede, concorrência e replay attack. O Data Steward audita credenciais e vazamento de chaves secretas.",
+        action: "Identificação de tentativa de replay sem nonce único. Disparo de Veto de Resiliência!",
+        isAutocure: true,
+        logs: [
+          { agent: "CHAOS QA", color: "#f43f5e", msg: "Injetando replay attack com timestamp defasado de 10 minutos..." },
+          { agent: "CHAOS QA", color: "#f43f5e", msg: "ANOMALIA DETECTADA: Falta validação de nonce único! (VETO)", isVeto: true }
+        ]
+      },
+      {
+        num: 4,
+        title: "Deliberação em Quórum & Autocura",
+        badge: "FASE 04 ATIVA",
+        coala: "CoALA: Working Memory & Quorum",
+        desc: "O Quórum intercepta o veto do Chaos QA em 5ms. O patch é abortado e retornado imediatamente ao Builder com os dados da falha para autocorreção.",
+        action: "Autocura: Builder adiciona tolerância de jitter e cache de nonces no Redis. Re-teste verde!",
+        logs: [
+          { agent: "QUORUM", color: "#ff7a2a", msg: "Veto recebido do Chaos QA. Interrupção imediata em 5ms." },
+          { agent: "AUTOCURA", color: "#a855f7", msg: "Patch corrigido pelo Builder com validação de nonce e jitter." },
+          { agent: "DATA STEWARD", color: "#a855f7", msg: "Auditoria de chaves e segredos em vault: 100% CONFORME." }
+        ]
+      },
+      {
+        num: 5,
+        title: "Validação na Bancada Harness",
+        badge: "FASE 05 ATIVA",
+        coala: "CoALA: Procedural Execution",
+        desc: "A Release Pilot despacha o código para a sandbox hermética Podman rootless. Banco de dados efêmero e suíte de testes de integração executam.",
+        action: "Todos os testes ponta a ponta passam com telemetria determinística comprovada.",
+        logs: [
+          { agent: "RELEASE PILOT", color: "#10b981", msg: "Subindo container Podman sandbox (rootless, efêmero)." },
+          { agent: "HARNESS", color: "#10b981", msg: "Static Fire: 14 testes E2E executados. 0 falhas, 0 leaks.", isSuccess: true }
+        ]
+      },
+      {
+        num: 6,
+        title: "Deploy & Criação de Anticorpos",
+        badge: "FASE 06 ATIVA",
+        coala: "CoALA: Episodic Long-Term Storage",
+        desc: "Merge aprovado para produção. A falha de replay testada é salva como fixture permanente na Memória Episódica, blindando futuras features.",
+        action: "Ciclo finalizado com sucesso! A Squad inicia a próxima feature do backlog em loop contínuo.",
+        logs: [
+          { agent: "CORTEX AI", color: "#10b981", msg: "Merge aprovado. 1 novo anticorpo arquivado na memória episódica.", isSuccess: true },
+          { agent: "LOOP", color: "#ff7a2a", msg: "Pronto para próxima feature. Reiniciando ciclo em 3s..." }
+        ]
+      }
+    ];
+
+    let currentPhaseIdx = 0;
+    let loopCycle = 1;
+    let isLoopRunning = true;
+    let roadmapTimer = null;
+
+    const phaseNodes = document.querySelectorAll(".roadmap-node");
+    const phaseDetailBadge = document.getElementById("phaseDetailBadge");
+    const phaseCoALABadge = document.getElementById("phaseCoALABadge");
+    const phaseDetailTitle = document.getElementById("phaseDetailTitle");
+    const phaseDetailDesc = document.getElementById("phaseDetailDesc");
+    const phaseDetailAction = document.getElementById("phaseDetailAction");
+    const consoleBody = document.getElementById("roadmapConsoleBody");
+    const loopCounter = document.getElementById("loopCounter");
+    const btnToggleLoop = document.getElementById("btnToggleRoadmapLoop");
+    const btnStepRoadmap = document.getElementById("btnStepRoadmap");
+    const loopStatusText = document.getElementById("roadmapLoopStatus");
+
+    function renderPhase(idx) {
+      currentPhaseIdx = idx;
+      const data = roadmapPhases[idx];
+
+      // Update Node classes
+      phaseNodes.forEach((node, i) => {
+        node.classList.remove("active", "passed", "autocure");
+        if (i < idx) node.classList.add("passed");
+        else if (i === idx) {
+          node.classList.add("active");
+          if (data.isAutocure) node.classList.add("autocure");
+        }
+      });
+
+      // Update Detail Card
+      phaseDetailBadge.textContent = data.badge;
+      phaseCoALABadge.textContent = data.coala;
+      phaseDetailTitle.textContent = data.title;
+      phaseDetailDesc.textContent = data.desc;
+      phaseDetailAction.innerHTML = \`<strong style="color: #ffffff;">Ação do Agente:</strong> <span style="color: #cbd5e1; margin-left: 4px;">\${data.action}</span>\`;
+
+      // Append Logs
+      const timeStr = new Date().toTimeString().split(" ")[0];
+      data.logs.forEach(l => {
+        const line = document.createElement("div");
+        line.style.marginBottom = "4px";
+        let msgSpan = \`<span style="color: #cbd5e1;">\${l.msg}</span>\`;
+        if (l.isVeto) msgSpan = \`<span class="log-veto">\${l.msg}</span>\`;
+        else if (l.isSuccess) msgSpan = \`<span class="log-success">\${l.msg}</span>\`;
+
+        line.innerHTML = \`<span class="log-time">[\${timeStr}]</span> <span class="log-agent" style="color: \${l.color}">\${l.agent}:</span> \${msgSpan}\`;
+        consoleBody.appendChild(line);
+      });
+      consoleBody.scrollTop = consoleBody.scrollHeight;
+    }
+
+    function advanceRoadmap() {
+      let nextIdx = (currentPhaseIdx + 1) % roadmapPhases.length;
+      if (nextIdx === 0) {
+        loopCycle++;
+        loopCounter.textContent = \`Ciclo #\${loopCycle} · Em Execução\`;
+        const divider = document.createElement("div");
+        divider.style.borderTop = "1px dashed var(--border-bright)";
+        divider.style.margin = "8px 0";
+        divider.innerHTML = \`<span style="color: var(--accent-flame); font-size: 10px;">--- REINICIANDO CICLO #\${loopCycle} ---</span>\`;
+        consoleBody.appendChild(divider);
+      }
+      renderPhase(nextIdx);
+    }
+
+    function startRoadmapLoop() {
+      if (roadmapTimer) clearInterval(roadmapTimer);
+      roadmapTimer = setInterval(() => {
+        if (isLoopRunning) advanceRoadmap();
+      }, 3400);
+    }
+
+    btnToggleLoop?.addEventListener("click", () => {
+      isLoopRunning = !isLoopRunning;
+      if (isLoopRunning) {
+        btnToggleLoop.textContent = "⏸ Pausar Simulação";
+        btnToggleLoop.style.borderColor = "var(--accent-flame)";
+        btnToggleLoop.style.color = "var(--accent-flame)";
+        loopStatusText.textContent = "Status: Em Execução";
+      } else {
+        btnToggleLoop.textContent = "▶ Continuar Simulação";
+        btnToggleLoop.style.borderColor = "var(--accent-emerald)";
+        btnToggleLoop.style.color = "var(--accent-emerald)";
+        loopStatusText.textContent = "Status: Pausado";
+      }
+    });
+
+    btnStepRoadmap?.addEventListener("click", () => {
+      advanceRoadmap();
+    });
+
+    phaseNodes.forEach((node, i) => {
+      node.addEventListener("click", () => renderPhase(i));
+    });
+
+    // Initialize first phase and loop
+    renderPhase(0);
+    startRoadmapLoop();
+  </script>
+</body>
+</html>`;
+
+function highlightCode(code) {
+  return code
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/("""[\s\S]*?""")/g, '<span class="k-cmt">$1</span>')
+    .replace(/(#.*$)/gm, '<span class="k-cmt">$1</span>')
+    .replace(/\b(class|def|return|if|any|all|in|for)\b/g, '<span class="k-kw">$1</span>')
+    .replace(/\b(CortexQuorumPolicy|AgentVote|QuorumDecision)\b/g, '<span class="k-cls">$1</span>');
+}
+
+writeFileSync("/Users/mauriciohelfstein/dev/cortex-squad-ai/apresentacao/index.html", fullHtml);
+writeFileSync("/Users/mauriciohelfstein/dev/cortex-squad-ai/apresentacao/presentation.html", fullHtml);
+console.log("Successfully rebuilt 6-slide deck in apresentacao/index.html and apresentacao/presentation.html");

@@ -1,5 +1,7 @@
 """Domain services for Quorum validation and consensus."""
 
+from dataclasses import replace
+
 from cortex_squad.domain.models.verdict import (
     HarnessReport,
     QuorumVote,
@@ -41,3 +43,14 @@ class QuorumPolicy:
             harness_report=harness_report,
             vetoing_personas=vetoing_personas,
         )
+
+    @classmethod
+    def sanitize_vote(cls, vote: QuorumVote) -> QuorumVote:
+        """A VETO is only valid when it cites evidence; otherwise it is downgraded."""
+        if vote.decision == VoteDecision.VETO and not vote.evidence:
+            return replace(
+                vote,
+                decision=VoteDecision.CONDITIONAL_APPROVE,
+                rationale=f"[veto without evidence downgraded] {vote.rationale}",
+            )
+        return vote

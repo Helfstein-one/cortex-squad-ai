@@ -4,6 +4,7 @@ from typing import Any
 
 from cortex_squad.adapters.outbound.llm.litellm_adapter import LiteLLMAdapter
 from cortex_squad.adapters.outbound.memory.sqlite_episodic_store import SqliteEpisodicStore
+from cortex_squad.adapters.outbound.probes.heuristic_probe import HeuristicEvidenceProbe
 from cortex_squad.adapters.outbound.sandbox.podman_harness_runner import PodmanHarnessRunner
 from cortex_squad.adapters.outbound.skills.markdown_skill_loader import MarkdownSkillLoader
 from cortex_squad.application.use_cases.run_mission import RunSquadMissionUseCase
@@ -22,6 +23,7 @@ def create_squad_runner() -> RunSquadMissionUseCase:
         memory_store=SqliteEpisodicStore(),
         skill_loader=MarkdownSkillLoader("skills"),
         sandbox=PodmanHarnessRunner(),
+        evidence_probe=HeuristicEvidenceProbe(),
     )
 
 
